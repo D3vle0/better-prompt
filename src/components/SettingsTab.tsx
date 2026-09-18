@@ -162,11 +162,10 @@ export const SettingsTab: React.FC = () => {
 
           {testResult && (
             <div
-              className={`p-2.5 rounded-lg border text-xs flex items-start gap-2 ${
-                testResult.success
-                  ? 'bg-muted/40 border-border text-foreground'
-                  : 'border-destructive/60 bg-destructive/10 text-destructive'
-              }`}
+              className={`p-2.5 rounded-lg border text-xs flex items-start gap-2 ${testResult.success
+                ? 'bg-muted/40 border-border text-foreground'
+                : 'border-destructive/60 bg-destructive/10 text-destructive'
+                }`}
             >
               {testResult.success ? (
                 <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-foreground" />
@@ -298,21 +297,6 @@ export const SettingsTab: React.FC = () => {
             </Select>
           </div>
         </div>
-      </div>
-
-      <Separator />
-
-      {/* Auto-save Status Footer */}
-      <div className="pt-0.5 flex items-center justify-between text-[11px] text-muted-foreground">
-        <span className="flex items-center gap-1.5">
-          <Check className="w-3 h-3 text-foreground" />
-          모든 설정이 실시간으로 자동 저장됩니다.
-        </span>
-        {saveStatus && (
-          <span className="text-[10px] font-medium text-foreground transition-opacity animate-fade-in">
-            ✓ {saveStatus}
-          </span>
-        )}
       </div>
     </div>
   );
