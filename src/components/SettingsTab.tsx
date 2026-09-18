@@ -267,36 +267,6 @@ export const SettingsTab: React.FC = () => {
             </Select>
           </div>
         </div>
-
-        <Separator />
-
-        {/* Default Image Engine */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <Label className="text-xs font-semibold">
-              기본 이미지 엔진
-            </Label>
-            <p className="text-[11px] text-muted-foreground">
-              이미지 생성 탭 기본 파라미터 템플릿
-            </p>
-          </div>
-          <div className="w-[130px]">
-            <Select
-              value={settings.defaultImageEngine}
-              onValueChange={(val: any) => handleChange('defaultImageEngine', val)}
-            >
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="midjourney">Midjourney</SelectItem>
-                <SelectItem value="flux">FLUX.1</SelectItem>
-                <SelectItem value="dalle">DALL-E 3</SelectItem>
-                <SelectItem value="sdxl">SDXL</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
       </div>
     </div>
   );

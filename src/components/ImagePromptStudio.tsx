@@ -14,6 +14,7 @@ import {
   Ratio,
   Cpu,
   RefreshCw,
+  Plus,
 } from 'lucide-react';
 
 const ART_STYLES = [
@@ -42,32 +43,46 @@ const CAMERAS = [
 ];
 
 const ASPECT_RATIOS = [
-  { label: '16:9 와이드', param: '--ar 16:9' },
-  { label: '9:16 숏폼', param: '--ar 9:16' },
-  { label: '1:1 정사각', param: '--ar 1:1' },
-  { label: '4:5 인스타', param: '--ar 4:5' },
-  { label: '21:9 시네마', param: '--ar 21:9' },
+  { id: '16_9', label: '16:9 와이드', param: '--ar 16:9' },
+  { id: '9_16', label: '9:16 숏폼', param: '--ar 9:16' },
+  { id: '1_1', label: '1:1 정사각', param: '--ar 1:1' },
+  { id: '4_5', label: '4:5 인스타', param: '--ar 4:5' },
+  { id: '21_9', label: '21:9 시네마', param: '--ar 21:9' },
 ];
 
 const ENGINES = [
   { id: 'mj', label: 'Midjourney v6.1', param: '--v 6.1 --stylize 250' },
   { id: 'flux', label: 'FLUX.1 Dev', param: '--quality 2' },
   { id: 'sdxl', label: 'SDXL', param: 'masterpiece, best quality' },
+  { id: 'dalle', label: 'DALL-E 3', param: 'HD, highly detailed, vibrant aesthetic' },
 ];
 
 export const ImagePromptStudio: React.FC<{ onApply?: (text: string) => void }> = ({
   onApply,
 }) => {
   const [subject, setSubject] = useState('');
-  const [selectedStyle, setSelectedStyle] = useState(ART_STYLES[0]);
-  const [selectedLighting, setSelectedLighting] = useState(LIGHTINGS[0]);
-  const [selectedCamera, setSelectedCamera] = useState(CAMERAS[0]);
-  const [selectedRatio, setSelectedRatio] = useState(ASPECT_RATIOS[0]);
-  const [selectedEngine, setSelectedEngine] = useState(ENGINES[0]);
+
+  // Category selections (id or 'custom' or null)
+  const [selectedStyleId, setSelectedStyleId] = useState<string | null>('photo');
+  const [customStyle, setCustomStyle] = useState('');
+
+  const [selectedLightingId, setSelectedLightingId] = useState<string | null>('golden');
+  const [customLighting, setCustomLighting] = useState('');
+
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>('portrait_85');
+  const [customCamera, setCustomCamera] = useState('');
+
+  const [selectedRatioId, setSelectedRatioId] = useState<string | null>('16_9');
+  const [customRatio, setCustomRatio] = useState('');
+
+  const [selectedEngineId, setSelectedEngineId] = useState<string | null>('mj');
+  const [customEngine, setCustomEngine] = useState('');
+
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [enhancedResult, setEnhancedResult] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Realtime prompt assembly
   const assembledPrompt = React.useMemo(() => {
     const parts: string[] = [];
     if (subject.trim()) {
@@ -76,21 +91,107 @@ export const ImagePromptStudio: React.FC<{ onApply?: (text: string) => void }> =
       parts.push('[피사체 / 주제를 입력하세요]');
     }
 
-    if (selectedStyle) parts.push(selectedStyle.value);
-    if (selectedLighting) parts.push(selectedLighting.value);
-    if (selectedCamera) parts.push(selectedCamera.value);
-    if (selectedEngine) parts.push(selectedEngine.param);
-    if (selectedRatio) parts.push(selectedRatio.param);
+    // 1. Style
+    if (selectedStyleId === 'custom') {
+      if (customStyle.trim()) parts.push(customStyle.trim());
+    } else if (selectedStyleId) {
+      const s = ART_STYLES.find((item) => item.id === selectedStyleId);
+      if (s?.value) parts.push(s.value);
+    }
+
+    // 2. Lighting
+    if (selectedLightingId === 'custom') {
+      if (customLighting.trim()) parts.push(customLighting.trim());
+    } else if (selectedLightingId) {
+      const l = LIGHTINGS.find((item) => item.id === selectedLightingId);
+      if (l?.value) parts.push(l.value);
+    }
+
+    // 3. Camera
+    if (selectedCameraId === 'custom') {
+      if (customCamera.trim()) parts.push(customCamera.trim());
+    } else if (selectedCameraId) {
+      const c = CAMERAS.find((item) => item.id === selectedCameraId);
+      if (c?.value) parts.push(c.value);
+    }
+
+    // 4. Target Engine
+    if (selectedEngineId === 'custom') {
+      if (customEngine.trim()) parts.push(customEngine.trim());
+    } else if (selectedEngineId) {
+      const e = ENGINES.find((item) => item.id === selectedEngineId);
+      if (e?.param) parts.push(e.param);
+    }
+
+    // 5. Aspect Ratio
+    if (selectedRatioId === 'custom') {
+      if (customRatio.trim()) {
+        const val = customRatio.trim();
+        parts.push(val.startsWith('--ar') ? val : `--ar ${val}`);
+      }
+    } else if (selectedRatioId) {
+      const r = ASPECT_RATIOS.find((item) => item.id === selectedRatioId);
+      if (r?.param) parts.push(r.param);
+    }
 
     return parts.join(', ');
-  }, [subject, selectedStyle, selectedLighting, selectedCamera, selectedEngine, selectedRatio]);
+  }, [
+    subject,
+    selectedStyleId,
+    customStyle,
+    selectedLightingId,
+    customLighting,
+    selectedCameraId,
+    customCamera,
+    selectedEngineId,
+    customEngine,
+    selectedRatioId,
+    customRatio,
+  ]);
 
   const handleDeepSeekEnhance = async () => {
     if (!subject.trim()) return;
     setIsEnhancing(true);
 
     try {
-      const promptQuery = `${subject}, ${selectedStyle.label}, ${selectedLighting.label}, ${selectedCamera.label}, 종횡비 ${selectedRatio.label}, 엔진 ${selectedEngine.label}`;
+      const queryParts: string[] = [subject.trim()];
+
+      if (selectedStyleId === 'custom' && customStyle.trim()) {
+        queryParts.push(`화풍: ${customStyle.trim()}`);
+      } else if (selectedStyleId) {
+        const s = ART_STYLES.find((item) => item.id === selectedStyleId);
+        if (s) queryParts.push(s.label);
+      }
+
+      if (selectedLightingId === 'custom' && customLighting.trim()) {
+        queryParts.push(`조명: ${customLighting.trim()}`);
+      } else if (selectedLightingId) {
+        const l = LIGHTINGS.find((item) => item.id === selectedLightingId);
+        if (l) queryParts.push(l.label);
+      }
+
+      if (selectedCameraId === 'custom' && customCamera.trim()) {
+        queryParts.push(`카메라/구도: ${customCamera.trim()}`);
+      } else if (selectedCameraId) {
+        const c = CAMERAS.find((item) => item.id === selectedCameraId);
+        if (c) queryParts.push(c.label);
+      }
+
+      if (selectedRatioId === 'custom' && customRatio.trim()) {
+        queryParts.push(`종횡비: ${customRatio.trim()}`);
+      } else if (selectedRatioId) {
+        const r = ASPECT_RATIOS.find((item) => item.id === selectedRatioId);
+        if (r) queryParts.push(`종횡비 ${r.label}`);
+      }
+
+      if (selectedEngineId === 'custom' && customEngine.trim()) {
+        queryParts.push(`엔진/파라미터: ${customEngine.trim()}`);
+      } else if (selectedEngineId) {
+        const e = ENGINES.find((item) => item.id === selectedEngineId);
+        if (e) queryParts.push(`엔진 ${e.label}`);
+      }
+
+      const promptQuery = queryParts.join(', ');
       const analysis = await analyzePromptWithAI(promptQuery);
       if (analysis.options.engine) {
         setEnhancedResult(analysis.options.engine.prompt);
@@ -113,6 +214,14 @@ export const ImagePromptStudio: React.FC<{ onApply?: (text: string) => void }> =
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const currentRatioParam = React.useMemo(() => {
+    if (selectedRatioId === 'custom') {
+      if (!customRatio.trim()) return '--ar 커스텀';
+      return customRatio.trim().startsWith('--ar') ? customRatio.trim() : `--ar ${customRatio.trim()}`;
+    }
+    return ASPECT_RATIOS.find((r) => r.id === selectedRatioId)?.param || '';
+  }, [selectedRatioId, customRatio]);
+
   return (
     <div className="space-y-4">
       {/* Subject Input */}
@@ -133,108 +242,223 @@ export const ImagePromptStudio: React.FC<{ onApply?: (text: string) => void }> =
         />
       </div>
 
-      {/* Style Presets Grid */}
+      {/* 1. Style Presets Grid */}
       <div className="space-y-1.5">
-        <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Palette className="w-3.5 h-3.5" />
-          화풍 및 아트 스타일
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Palette className="w-3.5 h-3.5" />
+            화풍 및 아트 스타일
+          </Label>
+          {selectedStyleId && (
+            <span className="text-[10px] text-muted-foreground">
+              {selectedStyleId === 'custom' ? (customStyle || '직접 입력') : ART_STYLES.find(s => s.id === selectedStyleId)?.label}
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-3 gap-1.5">
           {ART_STYLES.map((style) => (
             <Button
               key={style.id}
               type="button"
-              variant={selectedStyle.id === style.id ? "default" : "outline"}
+              variant={selectedStyleId === style.id ? "default" : "outline"}
               size="sm"
-              className="h-8 text-xs justify-start px-2.5 font-normal"
+              className="h-8 text-xs justify-start px-2.5 font-normal truncate"
               onClick={() => {
-                setSelectedStyle(style);
+                setSelectedStyleId(prev => prev === style.id ? null : style.id);
                 setEnhancedResult(null);
               }}
             >
               {style.label}
             </Button>
           ))}
+          <Button
+            type="button"
+            variant={selectedStyleId === 'custom' ? "default" : "outline"}
+            size="sm"
+            className="h-8 text-xs justify-start px-2.5 font-normal border-dashed col-span-3"
+            onClick={() => {
+              setSelectedStyleId(prev => prev === 'custom' ? null : 'custom');
+              setEnhancedResult(null);
+            }}
+          >
+            <Plus className="w-3 h-3 mr-1 text-muted-foreground" />
+            기타 화풍 직접 입력
+          </Button>
         </div>
+        {selectedStyleId === 'custom' && (
+          <Input
+            placeholder="원하는 화풍/스타일을 직접 입력하세요 (예: 수채화, 픽셀아트, 흑백 펜화)"
+            value={customStyle}
+            onChange={(e) => {
+              setCustomStyle(e.target.value);
+              setEnhancedResult(null);
+            }}
+            className="text-xs h-8 mt-1.5"
+            autoFocus
+          />
+        )}
       </div>
 
-      {/* Lighting & Camera */}
+      {/* 2 & 3. Lighting & Camera */}
       <div className="grid grid-cols-2 gap-3">
+        {/* Lighting */}
         <div className="space-y-1.5">
-          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Sun className="w-3.5 h-3.5" />
-            조명 및 무드
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Sun className="w-3.5 h-3.5" />
+              조명 및 무드
+            </Label>
+          </div>
           <div className="space-y-1">
             {LIGHTINGS.map((light) => (
               <Button
                 key={light.id}
                 type="button"
-                variant={selectedLighting.id === light.id ? "default" : "outline"}
+                variant={selectedLightingId === light.id ? "default" : "outline"}
                 size="sm"
-                className="w-full h-7 text-xs justify-start px-2 font-normal"
+                className="w-full h-7 text-xs justify-start px-2 font-normal truncate"
                 onClick={() => {
-                  setSelectedLighting(light);
+                  setSelectedLightingId(prev => prev === light.id ? null : light.id);
                   setEnhancedResult(null);
                 }}
               >
                 {light.label}
               </Button>
             ))}
+            <Button
+              type="button"
+              variant={selectedLightingId === 'custom' ? "default" : "outline"}
+              size="sm"
+              className="w-full h-7 text-xs justify-start px-2 font-normal border-dashed"
+              onClick={() => {
+                setSelectedLightingId(prev => prev === 'custom' ? null : 'custom');
+                setEnhancedResult(null);
+              }}
+            >
+              <Plus className="w-3 h-3 mr-1 text-muted-foreground" />
+              기타 (직접 입력)
+            </Button>
+            {selectedLightingId === 'custom' && (
+              <Input
+                placeholder="조명/무드 직접 입력"
+                value={customLighting}
+                onChange={(e) => {
+                  setCustomLighting(e.target.value);
+                  setEnhancedResult(null);
+                }}
+                className="text-xs h-7 mt-1"
+                autoFocus
+              />
+            )}
           </div>
         </div>
 
+        {/* Camera */}
         <div className="space-y-1.5">
-          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Camera className="w-3.5 h-3.5" />
-            카메라 및 앵글
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Camera className="w-3.5 h-3.5" />
+              카메라 및 앵글
+            </Label>
+          </div>
           <div className="space-y-1">
             {CAMERAS.map((cam) => (
               <Button
                 key={cam.id}
                 type="button"
-                variant={selectedCamera.id === cam.id ? "default" : "outline"}
+                variant={selectedCameraId === cam.id ? "default" : "outline"}
                 size="sm"
-                className="w-full h-7 text-xs justify-start px-2 font-normal"
+                className="w-full h-7 text-xs justify-start px-2 font-normal truncate"
                 onClick={() => {
-                  setSelectedCamera(cam);
+                  setSelectedCameraId(prev => prev === cam.id ? null : cam.id);
                   setEnhancedResult(null);
                 }}
               >
                 {cam.label}
               </Button>
             ))}
+            <Button
+              type="button"
+              variant={selectedCameraId === 'custom' ? "default" : "outline"}
+              size="sm"
+              className="w-full h-7 text-xs justify-start px-2 font-normal border-dashed"
+              onClick={() => {
+                setSelectedCameraId(prev => prev === 'custom' ? null : 'custom');
+                setEnhancedResult(null);
+              }}
+            >
+              <Plus className="w-3 h-3 mr-1 text-muted-foreground" />
+              기타 (직접 입력)
+            </Button>
+            {selectedCameraId === 'custom' && (
+              <Input
+                placeholder="카메라/구도 직접 입력"
+                value={customCamera}
+                onChange={(e) => {
+                  setCustomCamera(e.target.value);
+                  setEnhancedResult(null);
+                }}
+                className="text-xs h-7 mt-1"
+                autoFocus
+              />
+            )}
           </div>
         </div>
       </div>
 
-      {/* Aspect Ratio & Engine */}
+      {/* 4 & 5. Aspect Ratio & Engine */}
       <div className="grid grid-cols-2 gap-3">
+        {/* Aspect Ratio */}
         <div className="space-y-1.5">
           <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Ratio className="w-3.5 h-3.5" />
             종횡비 (Aspect Ratio)
           </Label>
           <div className="space-y-1">
-            {ASPECT_RATIOS.slice(0, 3).map((r, i) => (
+            {ASPECT_RATIOS.map((r) => (
               <Button
-                key={i}
+                key={r.id}
                 type="button"
-                variant={selectedRatio.param === r.param ? "default" : "outline"}
+                variant={selectedRatioId === r.id ? "default" : "outline"}
                 size="sm"
                 className="w-full h-7 text-xs justify-start px-2 font-normal"
                 onClick={() => {
-                  setSelectedRatio(r);
+                  setSelectedRatioId(prev => prev === r.id ? null : r.id);
                   setEnhancedResult(null);
                 }}
               >
                 {r.label}
               </Button>
             ))}
+            <Button
+              type="button"
+              variant={selectedRatioId === 'custom' ? "default" : "outline"}
+              size="sm"
+              className="w-full h-7 text-xs justify-start px-2 font-normal border-dashed"
+              onClick={() => {
+                setSelectedRatioId(prev => prev === 'custom' ? null : 'custom');
+                setEnhancedResult(null);
+              }}
+            >
+              <Plus className="w-3 h-3 mr-1 text-muted-foreground" />
+              기타 (직접 입력)
+            </Button>
+            {selectedRatioId === 'custom' && (
+              <Input
+                placeholder="비율 직접 입력 (예: 3:2, 2:3)"
+                value={customRatio}
+                onChange={(e) => {
+                  setCustomRatio(e.target.value);
+                  setEnhancedResult(null);
+                }}
+                className="text-xs h-7 mt-1"
+                autoFocus
+              />
+            )}
           </div>
         </div>
 
+        {/* Target Engine */}
         <div className="space-y-1.5">
           <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Cpu className="w-3.5 h-3.5" />
@@ -245,36 +469,66 @@ export const ImagePromptStudio: React.FC<{ onApply?: (text: string) => void }> =
               <Button
                 key={eng.id}
                 type="button"
-                variant={selectedEngine.id === eng.id ? "default" : "outline"}
+                variant={selectedEngineId === eng.id ? "default" : "outline"}
                 size="sm"
                 className="w-full h-7 text-xs justify-start px-2 font-normal"
                 onClick={() => {
-                  setSelectedEngine(eng);
+                  setSelectedEngineId(prev => prev === eng.id ? null : eng.id);
                   setEnhancedResult(null);
                 }}
               >
                 {eng.label}
               </Button>
             ))}
+            <Button
+              type="button"
+              variant={selectedEngineId === 'custom' ? "default" : "outline"}
+              size="sm"
+              className="w-full h-7 text-xs justify-start px-2 font-normal border-dashed"
+              onClick={() => {
+                setSelectedEngineId(prev => prev === 'custom' ? null : 'custom');
+                setEnhancedResult(null);
+              }}
+            >
+              <Plus className="w-3 h-3 mr-1 text-muted-foreground" />
+              기타 (직접 입력)
+            </Button>
+            {selectedEngineId === 'custom' && (
+              <Input
+                placeholder="모델/파라미터 직접 입력"
+                value={customEngine}
+                onChange={(e) => {
+                  setCustomEngine(e.target.value);
+                  setEnhancedResult(null);
+                }}
+                className="text-xs h-7 mt-1"
+                autoFocus
+              />
+            )}
           </div>
         </div>
       </div>
 
       <Separator />
 
-      {/* Live Assembled Output - Clean flat container without nested card */}
+      {/* Live Assembled Output */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label className="text-xs font-semibold flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
             {enhancedResult ? 'AI 고품질 완성본' : '실시간 조합 프롬프트'}
           </Label>
-          <span className="text-[11px] font-mono text-muted-foreground">
-            {selectedRatio.param}
-          </span>
+          {currentRatioParam && (
+            <span className="text-[11px] font-mono text-muted-foreground">
+              {currentRatioParam}
+            </span>
+          )}
         </div>
 
-        <div className="p-3 rounded-lg border border-border/40 bg-muted/30 font-mono text-xs whitespace-pre-wrap leading-relaxed max-h-[120px] overflow-y-auto select-all" style={{ borderRadius: '8px' }}>
+        <div
+          className="p-3 rounded-lg border border-border/40 bg-muted/30 font-mono text-xs whitespace-pre-wrap leading-relaxed max-h-[120px] overflow-y-auto select-all"
+          style={{ borderRadius: '8px' }}
+        >
           {currentDisplayPrompt}
         </div>
 
