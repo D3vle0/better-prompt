@@ -33,9 +33,7 @@ export interface PromptAnalysisResult {
 }
 
 export interface AppSettings {
-  apiKey: string;
-  baseUrl: string;
-  model: string;
+  backendUrl: string;
   floatingBadgeEnabled: boolean;
   preferredLanguage: 'ko' | 'en' | 'auto';
   defaultImageEngine: 'midjourney' | 'flux' | 'dalle' | 'sdxl';

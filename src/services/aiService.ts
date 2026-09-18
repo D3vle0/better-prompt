@@ -1,81 +1,14 @@
 import { AppSettings, PromptAnalysisResult } from '@/types';
 import { getSettings } from './storage';
 
-const SYSTEM_PROMPT = `You are "BetterPrompt", the world-class Prompt Doctor & Engineering Assistant for Generative & Conversational AI.
-Your mission is to analyze the user's raw prompt, diagnose its quality, and generate 3 levels of superior alternatives that prevent wasted credits and time.
-
-Output MUST be a strictly valid JSON object with the following structure (no markdown fences, no explanatory text outside JSON):
-{
-  "originalPrompt": string,
-  "category": "image" | "code" | "writing" | "reasoning" | "general",
-  "categoryLabel": "이미지 생성" | "코드 개발" | "콘텐츠/글쓰기" | "추론/분석" | "일반 질문",
-  "qualityScore": number (10 to 100 integer reflecting clarity, style, specificity, context),
-  "summaryDiagnosis": "한 줄 진단 요약 (예: 단순 요구형 프롬프트로 세부 스타일과 구도가 결여되어 원치 않는 결과가 나올 확률이 높습니다.)",
-  "weaknesses": [
-    {
-      "id": "w1",
-      "title": "약점 제목 (예: 화풍 및 스타일 미지정)",
-      "explanation": "구체적 문제점 설명",
-      "severity": "high" | "medium" | "low"
-    }
-  ],
-  "strengths": [
-    "장점 1",
-    "장점 2"
-  ],
-  "options": {
-    "quick": {
-      "id": "quick",
-      "title": "⚡ 빠른 보정 (Quick Polish)",
-      "tag": "핵심 명확화",
-      "description": "원문 의도를 그대로 살리면서 문맥과 명확성을 빠르게 다듬은 버전",
-      "prompt": "개선된 프롬프트 내용",
-      "whyItWorks": "AI가 모호함을 해석하느라 엉뚱한 답을 내지 않도록 핵심 지시어를 명확히 했습니다."
-    },
-    "expert": {
-      "id": "expert",
-      "title": "🧠 전문가형 구조화 (Structured Prompt)",
-      "tag": "역할·맥락·제약조건",
-      "description": "페르소나, 목표, 세부 제약사항, 출력 형식까지 완벽히 설계된 고품질 프롬프트",
-      "prompt": "[역할]\\n[목표]\\n[지침 및 제약사항]\\n[출력 형식]",
-      "whyItWorks": "AI에게 역할과 경계조건을 명확히 부여하여 할루시네이션을 방지하고 전문적인 결과물을 보장합니다."
-    },
-    "engine": {
-      "id": "engine",
-      "title": "🎨 Midjourney / FLUX 특화 (Engine-Specific)",
-      "tag": "하이퍼 디테일",
-      "description": "이미지의 경우 영문 비주얼 키워드 + 카메라/조명/화풍 + 파라미터(--ar 16:9 등), 텍스트/코딩의 경우 극대화된 벤치마크급 프롬프트",
-      "prompt": "상세한 특화 프롬프트",
-      "whyItWorks": "모델(Midjourney v6.1 / FLUX.1)이 가장 민감하게 반응하는 시각적 메타데이터와 영문 태그를 완벽 조합했습니다.",
-      "parameters": {
-        "aspect_ratio": "--ar 16:9",
-        "version": "--v 6.1",
-        "style": "--style raw"
-      }
-    }
-  }
-}
-
-CRITICAL RULES:
-1. If the user prompt is about generating an image (e.g. "고양이 그려줘", "사이버펑크 서울 거리 만들어줘", "로고 디자인"), category MUST be "image", and the 'engine' prompt MUST be high-detail English optimized for Midjourney v6 / FLUX.1 with lighting, camera (e.g., shot on 35mm lens, volumetric lighting, photorealistic, 8k), and parameters (--ar 16:9 --v 6.1 --stylize 250).
-2. Explanations and UI labels should be in Korean for Korean prompts, or match user preference.
-3. Be brutally honest with the qualityScore. A simple "~해줘" prompt should get 20~45.
-4. Return ONLY valid raw JSON.`;
-
 export async function analyzePromptWithAI(
   promptText: string,
   customSettings?: Partial<AppSettings>
 ): Promise<PromptAnalysisResult> {
   const settings = { ...(await getSettings()), ...(customSettings || {}) };
 
-  // If no API key provided, fall back to realistic intelligent heuristics / demo generator
-  if (!settings.apiKey || settings.apiKey.trim() === '') {
-    console.warn('BetterPrompt: No OpenCode Go API key provided. Using intelligent local generation.');
-    return generateFallbackAnalysis(promptText, settings);
-  }
-
   // Check if we are running in Chrome Extension content script
-  // In extension content scripts, fetch can be blocked by host page CSP. We route via background worker.
+  // In content scripts, host page CSP can block external requests. We route via background worker.
   if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage && !chrome.runtime.getBackgroundPage) {
     try {
       const response = await new Promise<any>((resolve, reject) => {
@@ -105,89 +38,101 @@ export async function analyzePromptWithAI(
   }
 
   // Direct fetch (used in background script, popup, or standalone demo)
-  return callDeepSeekDirect(promptText, settings);
+  return callBackendAnalyze(promptText, settings);
 }
 
-export async function callDeepSeekDirect(
+function getClientSessionId(): string {
+  try {
+    let sid = localStorage.getItem('better_prompt_session_id');
+    if (!sid) {
+      sid = 'session_ext_' + Math.random().toString(36).substring(2, 12) + '_' + Date.now();
+      localStorage.setItem('better_prompt_session_id', sid);
+    }
+    return sid;
+  } catch {
+    return 'session_ext_default';
+  }
+}
+
+export async function callBackendAnalyze(
   promptText: string,
   settings: AppSettings
 ): Promise<PromptAnalysisResult> {
-  const baseUrl = (settings.baseUrl || 'https://opencode.ai/zen/go/v1').replace(/\/+$/, '');
-  const endpoint = baseUrl.endsWith('/chat/completions')
-    ? baseUrl
-    : `${baseUrl}/chat/completions`;
-
-  const model = settings.model || 'deepseek-v4.1-flash';
-
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${settings.apiKey.trim()}`,
-    },
-    body: JSON.stringify({
-      model: model,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: `Analyze and enhance this user prompt:\n"""\n${promptText}\n"""\nTarget Language: ${settings.preferredLanguage}`,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-      response_format: { type: 'json_object' },
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenCode Go API Error (${response.status}): ${errorText}`);
-  }
-
-  const data = await response.json();
-  const rawContent = data.choices?.[0]?.message?.content;
-  if (!rawContent) {
-    throw new Error('No content returned from DeepSeek model');
-  }
+  const backendUrl = (settings.backendUrl || 'http://localhost:3001').replace(/\/+$/, '');
+  const endpoint = `${backendUrl}/api/analyze`;
+  const sessionId = getClientSessionId();
 
   try {
-    const cleanJson = rawContent
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/i, '')
-      .replace(/\s*```$/i, '')
-      .trim();
-    const parsed: PromptAnalysisResult = JSON.parse(cleanJson);
-    return parsed;
-  } catch (parseErr) {
-    console.error('Failed to parse DeepSeek JSON response:', rawContent, parseErr);
-    throw new Error('Invalid JSON format received from AI model');
-  }
-}
-
-export async function testApiConnection(
-  apiKey: string,
-  baseUrl: string,
-  model: string
-): Promise<{ success: boolean; latencyMs: number; message: string }> {
-  const startTime = Date.now();
-  const cleanBase = (baseUrl || 'https://opencode.ai/zen/go/v1').replace(/\/+$/, '');
-  const endpoint = cleanBase.endsWith('/chat/completions')
-    ? cleanBase
-    : `${cleanBase}/chat/completions`;
-
-  try {
-    const res = await fetch(endpoint, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey.trim()}`,
+        'x-opencode-session': sessionId,
       },
       body: JSON.stringify({
-        model: model || 'deepseek-v4.1-flash',
-        messages: [{ role: 'user', content: 'Say "OK" in 1 word.' }],
-        max_tokens: 10,
+        prompt: promptText,
+        preferredLanguage: settings.preferredLanguage || 'ko',
+        sessionId,
       }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.warn(`Backend API Error (${response.status}): ${errorText}. Using local fallback.`);
+      return generateFallbackAnalysis(promptText, settings);
+    }
+
+    const data: PromptAnalysisResult = await response.json();
+    return data;
+  } catch (err: any) {
+    console.warn(`Failed to connect to BetterPrompt backend at ${endpoint}:`, err);
+    // Return high quality fallback analysis with a note
+    return generateFallbackAnalysis(promptText, settings);
+  }
+}
+
+export async function testBackendConnection(
+  backendUrl: string
+): Promise<{ success: boolean; latencyMs: number; message: string; model?: string; uptime?: number }> {
+  // If in Chrome Extension content script, route via background worker to bypass page CSP restrictions
+  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage && !chrome.runtime.getBackgroundPage) {
+    try {
+      const response = await new Promise<any>((resolve, reject) => {
+        chrome.runtime.sendMessage(
+          {
+            type: 'TEST_CONNECTION',
+            payload: { backendUrl },
+          },
+          (res) => {
+            if (chrome.runtime.lastError) {
+              return reject(new Error(chrome.runtime.lastError.message));
+            }
+            if (res && res.error) {
+              return reject(new Error(res.error));
+            }
+            resolve(res);
+          }
+        );
+      });
+
+      if (response && response.data) {
+        return response.data;
+      }
+    } catch (err) {
+      console.warn('Background TEST_CONNECTION failed, attempting direct fetch:', err);
+    }
+  }
+
+  const startTime = Date.now();
+  const cleanUrl = (backendUrl || 'http://localhost:3001').replace(/\/+$/, '');
+  const endpoint = `${cleanUrl}/api/health`;
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
     });
 
     const latencyMs = Date.now() - startTime;
@@ -205,20 +150,61 @@ export async function testApiConnection(
     return {
       success: true,
       latencyMs,
-      message: `연결 성공! (${model} 응답: ${data.choices?.[0]?.message?.content?.trim() || 'OK'})`,
+      message: `연결 정상 (${data.model || 'mimo-v2.5'})`,
+      model: data.model,
+      uptime: data.uptime,
     };
   } catch (err: any) {
     return {
       success: false,
       latencyMs: Date.now() - startTime,
-      message: err?.message || '네트워크 연결 오류',
+      message: err?.message || '백엔드 서버에 연결할 수 없습니다. (CORS 또는 서버 오프라인)',
     };
   }
 }
 
+export async function enhanceImageWithBackend(
+  promptText: string,
+  engine: string,
+  aspectRatio?: string,
+  settings?: AppSettings
+): Promise<any> {
+  const currentSettings = settings || (await getSettings());
+  const backendUrl = (currentSettings.backendUrl || 'http://localhost:3001').replace(/\/+$/, '');
+  const endpoint = `${backendUrl}/api/enhance-image`;
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt: promptText,
+        engine,
+        aspectRatio: aspectRatio || '16:9',
+      }),
+    });
+
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Backend image enhancement failed, using local format:', err);
+  }
+
+  return {
+    engine,
+    originalPrompt: promptText,
+    enhancedPrompt: `Cinematic shot of ${promptText}, photorealistic 8k --ar ${aspectRatio || '16:9'} --v 6.1`,
+    parameters: { '--ar': aspectRatio || '16:9', '--v': '6.1' },
+    suggestions: ['백엔드 연결 대기 중 - 로컬 프리셋 생성됨'],
+  };
+}
+
 /**
- * Intelligent local fallback when no API key is provided yet,
- * providing realistic DeepSeek V4.1 Flash styled responses for immediate evaluation.
+ * Intelligent local fallback when backend is temporarily offline or unreachable,
+ * guaranteeing the user never experiences broken UI or halted workflows.
  */
 function generateFallbackAnalysis(
   promptText: string,
@@ -243,7 +229,6 @@ function generateFallbackAnalysis(
     categoryLabel = '콘텐츠/글쓰기';
   }
 
-  // Calculate quality score based on length and richness
   const wordCount = text.split(/\s+/).length;
   let qualityScore = Math.min(Math.max(Math.round(wordCount * 5 + (text.length > 30 ? 15 : 5)), 25), 65);
 
@@ -309,7 +294,6 @@ function generateFallbackAnalysis(
     };
   }
 
-  // General / Coding / Writing fallback
   return {
     originalPrompt: text,
     category,

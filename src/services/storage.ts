@@ -1,9 +1,7 @@
 import { AppSettings, HistoryItem } from '@/types';
 
 const DEFAULT_SETTINGS: AppSettings = {
-  apiKey: '',
-  baseUrl: 'https://opencode.ai/zen/go/v1',
-  model: 'deepseek-v4.1-flash',
+  backendUrl: 'http://localhost:3001',
   floatingBadgeEnabled: true,
   preferredLanguage: 'ko',
   defaultImageEngine: 'midjourney',

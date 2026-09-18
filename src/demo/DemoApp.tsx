@@ -188,7 +188,7 @@ export const DemoApp: React.FC = () => {
                   </div>
                   <div className="flex items-start gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-foreground shrink-0 mt-0.5" />
-                    <span><strong>Background API 중계</strong>: 브라우저 CSP / CORS 완벽 우회</span>
+                    <span><strong>전용 AI 백엔드 연동</strong>: 사용자 API 키 입력 불필요 (Keyless UX)</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-foreground shrink-0 mt-0.5" />
