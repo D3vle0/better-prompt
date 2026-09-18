@@ -138,7 +138,6 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
           value={promptInput}
           onChange={(e) => setPromptInput(e.target.value)}
           className="min-h-[85px] text-sm resize-y rounded-lg"
-          style={{ borderRadius: '8px' }}
         />
 
         {/* Preset Sample Links - Clean text, no rectangular pills */}
@@ -162,7 +161,6 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
           onClick={() => handleAnalyze()}
           disabled={isLoading || !promptInput.trim()}
           className="w-full h-9 text-xs font-medium rounded-lg"
-          style={{ borderRadius: '8px' }}
         >
           {isLoading ? (
             <>
@@ -176,17 +174,6 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
             </>
           )}
         </Button>
-
-        {isLoading && (
-          <div className="flex items-center justify-center gap-2 py-1 text-[11px] text-muted-foreground animate-pulse">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            <span>
-              {deepThinking
-                ? '심층 추론(Deep Thinking)으로 최고 품질 프롬프트 설계 중... (약 15~20초)'
-                : '초고속 모드로 프롬프트 분석 및 최적화 대안 도출 중... (약 1~2초)'}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Analysis Result - Clean flat layout without rectangular pill badges or nested cards */}
@@ -203,7 +190,7 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
               </span>
             </div>
 
-            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-muted/40 text-xs" style={{ borderRadius: '8px' }}>
+            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-muted/40 text-xs">
               <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
               <span className="text-foreground leading-relaxed font-medium">
                 {result.summaryDiagnosis}
@@ -222,7 +209,6 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
                     size="sm"
                     onClick={() => setShowAllWeaknesses(!showAllWeaknesses)}
                     className="h-6 text-[11px] px-1.5 text-muted-foreground font-normal rounded-md"
-                    style={{ borderRadius: '6px' }}
                   >
                     {showAllWeaknesses ? '접기' : '더보기'}
                     {showAllWeaknesses ? <ChevronUp className="w-3 h-3 ml-0.5" /> : <ChevronDown className="w-3 h-3 ml-0.5" />}
@@ -235,7 +221,6 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
                   <div
                     key={w.id}
                     className="p-2 text-xs space-y-0.5 rounded-lg bg-muted/20"
-                    style={{ borderRadius: '8px' }}
                   >
                     <div className="flex items-center justify-between font-medium text-foreground">
                       <span>• {w.title}</span>
@@ -305,13 +290,13 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
                   {/* Prompt Box or Diff View */}
                   {showDiff ? (
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="p-2.5 rounded-lg bg-muted/40 space-y-1" style={{ borderRadius: '8px' }}>
+                      <div className="p-2.5 rounded-lg bg-muted/40 space-y-1">
                         <span className="text-[10px] font-bold text-muted-foreground">원문 (Before)</span>
                         <p className="text-muted-foreground whitespace-pre-wrap text-[11px]">
                           {result.originalPrompt}
                         </p>
                       </div>
-                      <div className="p-2.5 rounded-lg bg-muted/60 space-y-1" style={{ borderRadius: '8px' }}>
+                      <div className="p-2.5 rounded-lg bg-muted/60 space-y-1">
                         <span className="text-[10px] font-bold text-foreground">교정본 (After)</span>
                         <p className="text-foreground whitespace-pre-wrap font-medium text-[11px]">
                           {currentOption.prompt}
@@ -321,7 +306,6 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
                   ) : (
                     <div
                       className="p-3 rounded-lg border border-border/40 bg-muted/30 font-mono text-xs whitespace-pre-wrap leading-relaxed max-h-[190px] overflow-y-auto select-all"
-                      style={{ borderRadius: '8px' }}
                     >
                       {currentOption.prompt}
                     </div>
@@ -355,7 +339,6 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
                     <Button
                       onClick={() => handleApply(currentOption.prompt)}
                       className="flex-1 h-8.5 text-xs font-medium rounded-lg"
-                      style={{ borderRadius: '8px' }}
                     >
                       {applied ? (
                         <>
@@ -374,7 +357,6 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
                       onClick={() => handleCopy(currentOption.prompt, currentOption.id)}
                       variant="outline"
                       className="h-8.5 text-xs px-3 font-normal rounded-lg"
-                      style={{ borderRadius: '8px' }}
                     >
                       {copiedId === currentOption.id ? (
                         <>
