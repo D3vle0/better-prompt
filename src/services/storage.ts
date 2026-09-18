@@ -5,6 +5,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   floatingBadgeEnabled: true,
   preferredLanguage: 'ko',
   defaultImageEngine: 'midjourney',
+  deepThinkingEnabled: false,
 };
 
 const SETTINGS_KEY = 'better_prompt_settings';

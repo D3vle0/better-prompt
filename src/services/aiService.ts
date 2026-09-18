@@ -83,6 +83,7 @@ export async function callBackendAnalyze(
         prompt: promptText,
         preferredLanguage: settings.preferredLanguage || 'ko',
         sessionId,
+        deepThinking: Boolean(settings.deepThinkingEnabled),
       }),
     });
 

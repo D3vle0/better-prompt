@@ -23,6 +23,8 @@ import {
   Zap,
   ShieldCheck,
   RotateCcw,
+  Brain,
+  Check,
 } from 'lucide-react';
 
 export const SettingsTab: React.FC = () => {
@@ -31,6 +33,7 @@ export const SettingsTab: React.FC = () => {
     floatingBadgeEnabled: true,
     preferredLanguage: 'ko',
     defaultImageEngine: 'midjourney',
+    deepThinkingEnabled: false,
   });
 
   const [isTesting, setIsTesting] = useState(false);
@@ -52,13 +55,13 @@ export const SettingsTab: React.FC = () => {
   }, []);
 
   const handleChange = (key: keyof AppSettings, value: any) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleSave = async () => {
-    await saveSettings(settings);
-    setSaveStatus('설정이 저장되었습니다.');
-    setTimeout(() => setSaveStatus(null), 3000);
+    setSettings((prev) => {
+      const next = { ...prev, [key]: value };
+      saveSettings(next);
+      return next;
+    });
+    setSaveStatus('저장됨');
+    setTimeout(() => setSaveStatus(null), 1500);
   };
 
   const handleTestConnection = async () => {
@@ -214,6 +217,31 @@ export const SettingsTab: React.FC = () => {
 
         <Separator />
 
+        {/* Deep Thinking Mode Toggle */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1.5">
+              <Brain className="w-3.5 h-3.5 text-foreground" />
+              <Label className="text-xs font-semibold">
+                심층 추론 모드 (Deep Thinking)
+              </Label>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {settings.deepThinkingEnabled
+                ? 'ON: 모델이 다단계 추론을 거쳐 최고 품질의 프롬프트를 설계합니다. (약 15~20초)'
+                : 'OFF: 1~2초 내 즉각 응답하는 초고속 모드로 작동합니다.'}
+            </p>
+          </div>
+          <Switch
+            checked={settings.deepThinkingEnabled}
+            onCheckedChange={(checked) =>
+              handleChange('deepThinkingEnabled', checked)
+            }
+          />
+        </div>
+
+        <Separator />
+
         {/* Preferred Language */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
@@ -274,19 +302,16 @@ export const SettingsTab: React.FC = () => {
 
       <Separator />
 
-      {/* Save Button */}
-      <div className="space-y-2">
-        <Button
-          onClick={handleSave}
-          className="w-full text-xs h-9 font-medium"
-        >
-          설정 저장하기
-        </Button>
-
+      {/* Auto-save Status Footer */}
+      <div className="pt-0.5 flex items-center justify-between text-[11px] text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <Check className="w-3 h-3 text-foreground" />
+          모든 설정이 실시간으로 자동 저장됩니다.
+        </span>
         {saveStatus && (
-          <p className="text-center text-xs font-medium text-foreground animate-fade-in">
-            {saveStatus}
-          </p>
+          <span className="text-[10px] font-medium text-foreground transition-opacity animate-fade-in">
+            ✓ {saveStatus}
+          </span>
         )}
       </div>
     </div>

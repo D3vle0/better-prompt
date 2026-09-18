@@ -37,6 +37,7 @@ export interface AppSettings {
   floatingBadgeEnabled: boolean;
   preferredLanguage: 'ko' | 'en' | 'auto';
   defaultImageEngine: 'midjourney' | 'flux' | 'dalle' | 'sdxl';
+  deepThinkingEnabled: boolean;
 }
 
 export interface HistoryItem {

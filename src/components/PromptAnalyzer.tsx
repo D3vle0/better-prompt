@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { PromptQualityGauge } from './PromptQualityGauge';
 import { PromptAnalysisResult, EnhancedOption } from '@/types';
 import { analyzePromptWithAI } from '@/services/aiService';
-import { addHistoryItem } from '@/services/storage';
+import { addHistoryItem, getSettings } from '@/services/storage';
 import {
   Sparkles,
   Copy,
@@ -48,6 +48,11 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
   const [applied, setApplied] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
   const [showAllWeaknesses, setShowAllWeaknesses] = useState(false);
+  const [deepThinking, setDeepThinking] = useState(false);
+
+  useEffect(() => {
+    getSettings().then((s) => setDeepThinking(Boolean(s.deepThinkingEnabled)));
+  }, []);
 
   const handleAnalyze = async (textToAnalyze?: string) => {
     const targetText = textToAnalyze !== undefined ? textToAnalyze : promptInput;
@@ -57,7 +62,9 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
     setApplied(false);
 
     try {
-      const data = await analyzePromptWithAI(targetText);
+      const currentSettings = await getSettings();
+      setDeepThinking(Boolean(currentSettings.deepThinkingEnabled));
+      const data = await analyzePromptWithAI(targetText, currentSettings);
       setResult(data);
       if (data.category === 'image') {
         setActiveOptionTab('engine');
@@ -173,7 +180,11 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
         {isLoading && (
           <div className="flex items-center justify-center gap-2 py-1 text-[11px] text-muted-foreground animate-pulse">
             <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            <span>AI 모델이 프롬프트를 분석하고 최적화 대안을 도출 중입니다...</span>
+            <span>
+              {deepThinking
+                ? '심층 추론(Deep Thinking)으로 최고 품질 프롬프트 설계 중... (약 15~20초)'
+                : '초고속 모드로 프롬프트 분석 및 최적화 대안 도출 중... (약 1~2초)'}
+            </span>
           </div>
         )}
       </div>
