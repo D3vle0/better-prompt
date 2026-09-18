@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npm run build:extension",
+    "build:web": "tsc && vite build",
     "build:extension": "tsc && node scripts/build_extension.js",
     "preview": "vite preview"
   },
