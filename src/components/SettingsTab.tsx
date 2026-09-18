@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { AppSettings } from '@/types';
 import { getSettings, saveSettings, removeAllowedSite, DEFAULT_ALLOWED_SITES, BACKEND_SERVER_URL } from '@/services/storage';
@@ -100,23 +93,32 @@ export const SettingsTab: React.FC = () => {
               기본 추천 언어
             </Label>
             <p className="text-[11px] text-muted-foreground">
-              프롬프트 보정 결과 언어 (이미지 전용 태그는 영문 유지)
+              프롬프트 보정 및 분석 결과 출력 언어
             </p>
           </div>
-          <div className="w-[130px]">
-            <Select
-              value={settings.preferredLanguage}
-              onValueChange={(val) => handleChange('preferredLanguage', val)}
+          <div className="flex items-center rounded-lg border border-border/60 p-0.5 bg-muted/40 shrink-0">
+            <button
+              type="button"
+              onClick={() => handleChange('preferredLanguage', 'ko')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all cursor-pointer select-none ${
+                (settings.preferredLanguage || 'ko') === 'ko'
+                  ? 'bg-background text-foreground shadow-sm font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
             >
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ko">한국어 (Korean)</SelectItem>
-                <SelectItem value="en">영어 (English)</SelectItem>
-                <SelectItem value="auto">자동 감지</SelectItem>
-              </SelectContent>
-            </Select>
+              한국어
+            </button>
+            <button
+              type="button"
+              onClick={() => handleChange('preferredLanguage', 'en')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all cursor-pointer select-none ${
+                settings.preferredLanguage === 'en'
+                  ? 'bg-background text-foreground shadow-sm font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              영어
+            </button>
           </div>
         </div>
 

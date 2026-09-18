@@ -94,7 +94,7 @@ export async function callBackendAnalyze(
     }
 
     const data: PromptAnalysisResult = await response.json();
-    return data;
+    return sanitizeAnalysisResult(data, settings.preferredLanguage || 'ko');
   } catch (err: any) {
     console.warn(`Failed to connect to BetterPrompt backend at ${endpoint}:`, err);
     // Return high quality fallback analysis with a note
@@ -214,6 +214,124 @@ export async function enhanceImageWithBackend(
 }
 
 /**
+ * Sanitizes AI analysis output to strictly remove or translate any leaked Chinese
+ * terminology (e.g. 提示词, 角色, 约束) and remove Japanese Kana/Kanji.
+ */
+export function sanitizeAnalysisResult(
+  result: PromptAnalysisResult,
+  targetLang: string
+): PromptAnalysisResult {
+  const isEn = targetLang === 'en';
+
+  const cleanText = (str: string | undefined): string => {
+    if (!str) return '';
+    let text = str;
+
+    if (!isEn) {
+      // Korean target: replace known Chinese prompt terminology with natural Korean
+      const replacements: [RegExp, string][] = [
+        [/提示词/g, '프롬프트'],
+        [/\[\s*角色\s*\]/g, '[역할]'],
+        [/角色/g, '역할'],
+        [/\[\s*约束条件\s*\]/g, '[제약사항]'],
+        [/\[\s*约束\s*\]/g, '[제약사항]'],
+        [/约束条件/g, '제약사항'],
+        [/约束/g, '제약사항'],
+        [/\[\s*输出格式\s*\]/g, '[출력 형식]'],
+        [/输出格式/g, '출력 형식'],
+        [/\[\s*目标\s*\]/g, '[목표]'],
+        [/目标/g, '목표'],
+        [/\[\s*背景\s*\]/g, '[배경]'],
+        [/背景/g, '배경'],
+        [/\[\s*任务\s*\]/g, '[작업]'],
+        [/任务/g, '작업'],
+        [/\[\s*思考\s*\]/g, '[추론]'],
+        [/思考/g, '추론'],
+        [/\[\s*示例\s*\]/g, '[예시]'],
+        [/示例/g, '예시'],
+        [/优化/g, '최적화'],
+        [/参数/g, '매개변수'],
+        [/结构化/g, '구조화'],
+        [/弱点/g, '취약점'],
+        [/建议/g, '추천'],
+        [/高质量/g, '고품질'],
+        [/专家/g, '전문가'],
+        [/要求/g, '요구사항'],
+        [/原则/g, '원칙'],
+        [/规则/g, '규칙'],
+        [/上下文/g, '컨텍스트'],
+        [/步骤/g, '단계'],
+        [/说明/g, '설명'],
+        [/回答/g, '답변'],
+        [/核心/g, '핵심'],
+        [/内容/g, '내용'],
+        [/分析/g, '분석'],
+        [/生成/g, '생성'],
+        [/语言/g, '언어'],
+        [/中文/g, '한국어'],
+        [/英文/g, '영어'],
+        [/日文/g, '일본어'],
+      ];
+
+      for (const [pattern, rep] of replacements) {
+        text = text.replace(pattern, rep);
+      }
+
+      // Remove Japanese Kana (Hiragana & Katakana)
+      text = text.replace(/[\u3040-\u309F\u30A0-\u30FF]+/g, '');
+
+      // Remove any leftover Chinese Hanzi
+      text = text.replace(/[\u4E00-\u9FFF]+/g, '');
+    } else {
+      // English target: strip any Chinese, Japanese, or Korean characters that might leak
+      text = text.replace(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]+/g, '');
+    }
+
+    // Clean up empty brackets and double spaces
+    text = text.replace(/\[\s*\]/g, '').replace(/  +/g, ' ').trim();
+    return text;
+  };
+
+  return {
+    ...result,
+    summaryDiagnosis: cleanText(result.summaryDiagnosis),
+    categoryLabel: cleanText(result.categoryLabel),
+    weaknesses: (result.weaknesses || []).map((w) => ({
+      ...w,
+      title: cleanText(w.title),
+      explanation: cleanText(w.explanation),
+    })),
+    strengths: (result.strengths || []).map((s) => cleanText(s)),
+    options: {
+      quick: {
+        ...result.options?.quick,
+        title: cleanText(result.options?.quick?.title),
+        tag: cleanText(result.options?.quick?.tag),
+        description: cleanText(result.options?.quick?.description),
+        prompt: cleanText(result.options?.quick?.prompt),
+        whyItWorks: cleanText(result.options?.quick?.whyItWorks),
+      },
+      expert: {
+        ...result.options?.expert,
+        title: cleanText(result.options?.expert?.title),
+        tag: cleanText(result.options?.expert?.tag),
+        description: cleanText(result.options?.expert?.description),
+        prompt: cleanText(result.options?.expert?.prompt),
+        whyItWorks: cleanText(result.options?.expert?.whyItWorks),
+      },
+      engine: {
+        ...result.options?.engine,
+        title: cleanText(result.options?.engine?.title),
+        tag: cleanText(result.options?.engine?.tag),
+        description: cleanText(result.options?.engine?.description),
+        prompt: cleanText(result.options?.engine?.prompt),
+        whyItWorks: cleanText(result.options?.engine?.whyItWorks),
+      },
+    },
+  };
+}
+
+/**
  * Intelligent local fallback when backend is temporarily offline or unreachable,
  * guaranteeing the user never experiences broken UI or halted workflows.
  */
@@ -222,28 +340,91 @@ function generateFallbackAnalysis(
   settings: AppSettings
 ): PromptAnalysisResult {
   const text = promptText.trim();
+  const isEn = (settings.preferredLanguage || 'ko') === 'en';
   const isImage = /(그려|이미지|사진|그림|일러스트|포스터|배경|캐릭터|디자인|draw|paint|picture|photo|midjourney|flux)/i.test(text);
   const isCode = /(코드|개발|함수|컴포넌트|리액트|버그|파이썬|api|code|react|typescript|python|fix|function)/i.test(text);
   const isWriting = /(글|작성|블로그|이메일|보고서|카피|대본|write|blog|email|copy)/i.test(text);
 
   let category: PromptAnalysisResult['category'] = 'general';
-  let categoryLabel = '일반 질문';
+  let categoryLabel = isEn ? 'General Prompt' : '일반 질문';
 
   if (isImage) {
     category = 'image';
-    categoryLabel = '이미지 생성';
+    categoryLabel = isEn ? 'Image Generation' : '이미지 생성';
   } else if (isCode) {
     category = 'code';
-    categoryLabel = '코드 개발';
+    categoryLabel = isEn ? 'Code & Development' : '코드 개발';
   } else if (isWriting) {
     category = 'writing';
-    categoryLabel = '콘텐츠/글쓰기';
+    categoryLabel = isEn ? 'Content & Writing' : '콘텐츠/글쓰기';
   }
 
   const wordCount = text.split(/\s+/).length;
   let qualityScore = Math.min(Math.max(Math.round(wordCount * 5 + (text.length > 30 ? 15 : 5)), 25), 65);
 
   if (category === 'image') {
+    if (isEn) {
+      return {
+        originalPrompt: text,
+        category: 'image',
+        categoryLabel: 'Image Generation',
+        qualityScore,
+        summaryDiagnosis: 'Missing art style, camera optics, lighting conditions, and engine aspect ratio parameters.',
+        weaknesses: [
+          {
+            id: 'w1',
+            title: 'Unspecified Art Style',
+            explanation: 'Photorealistic, 3D octane render, or illustration is unspecified, forcing the AI to guess.',
+            severity: 'high',
+          },
+          {
+            id: 'w2',
+            title: 'No Lighting or Angle Details',
+            explanation: 'Lacks cinematic lighting (e.g. golden hour, volumetric haze) and lens focal length (e.g. 35mm, 85mm).',
+            severity: 'medium',
+          },
+          {
+            id: 'w3',
+            title: 'Missing Engine Parameters',
+            explanation: 'Aspect ratio (--ar 16:9), model version (--v 6.1), and stylize flags are omitted.',
+            severity: 'low',
+          },
+        ],
+        strengths: ['Core visual subject is clearly identified'],
+        options: {
+          quick: {
+            id: 'quick',
+            title: '⚡ Quick Polish',
+            tag: 'Clarity & Detail',
+            description: 'Preserves your original concept while adding high-fidelity visual rendering tags',
+            prompt: `${text}, highly detailed, cinematic lighting, photorealistic textures, 8k resolution`,
+            whyItWorks: 'Adds professional visual keywords so image generation models compute realistic light and texture layers.',
+          },
+          expert: {
+            id: 'expert',
+            title: '🧠 Structured Prompt',
+            tag: 'Lighting & Composition',
+            description: 'Logically separates subject, environment, lighting, and camera optics',
+            prompt: `[Subject]: ${text}\n[Art Style]: Hyper-realistic digital concept art, octane render style\n[Lighting]: Cinematic golden hour lighting with soft volumetric haze\n[Composition]: Wide-angle shot, rule of thirds, ultra-detailed background\n[Color Palette]: Vibrant accents with deep atmospheric contrasts`,
+            whyItWorks: 'Structured component separation prevents visual bleeding and aligns image diffusion layers cleanly.',
+          },
+          engine: {
+            id: 'engine',
+            title: '🎨 Midjourney / FLUX Spec',
+            tag: 'Optics & Parameters',
+            description: 'Optimized for Midjourney v6.1 and FLUX.1 with camera optics and parameters',
+            prompt: `Cinematic shot of ${text}, photorealistic, shot on Sony A7R V with 35mm f/1.4 GM lens, dramatic volumetric lighting, intricate aesthetic, highly detailed textures, ray tracing reflections, 8k resolution --ar 16:9 --v 6.1 --stylize 250 --style raw`,
+            whyItWorks: 'Midjourney parameters and photographic lens keywords unlock maximum rendering fidelity.',
+            parameters: {
+              aspect_ratio: '--ar 16:9',
+              engine: '--v 6.1',
+              style: '--style raw',
+            },
+          },
+        },
+      };
+    }
+
     return {
       originalPrompt: text,
       category: 'image',
@@ -293,13 +474,64 @@ function generateFallbackAnalysis(
           title: '🎨 Midjourney / FLUX 특화 (Engine-Specific)',
           tag: '영문 키워드 + 파라미터',
           description: '미드저니 v6.1 및 FLUX.1 생성에 최적화된 영문 카메라/조명 메타데이터',
-          prompt: `Cinematic shot of ${text}, photorealistic, shot on Sony A7R V with 35mm f/1.4 GM lens, dramatic volumetric lighting, intricate cyberpunk aesthetic, highly detailed textures, ray tracing reflections, 8k resolution --ar 16:9 --v 6.1 --stylize 250 --style raw`,
+          prompt: `Cinematic shot of ${text}, photorealistic, shot on Sony A7R V with 35mm f/1.4 GM lens, dramatic volumetric lighting, intricate aesthetic, highly detailed textures, ray tracing reflections, 8k resolution --ar 16:9 --v 6.1 --stylize 250 --style raw`,
           whyItWorks: '미드저니는 영문 전문 사진 용어(카메라 기종, 조리개값, 조명 기법)와 파라미터(--ar, --stylize)를 인식할 때 디테일이 비약적으로 향상됩니다.',
           parameters: {
             aspect_ratio: '--ar 16:9',
             engine: '--v 6.1',
             style: '--style raw',
           },
+        },
+      },
+    };
+  }
+
+  if (isEn) {
+    return {
+      originalPrompt: text,
+      category,
+      categoryLabel,
+      qualityScore,
+      summaryDiagnosis: 'The instruction is minimal and lacks an assigned persona, execution constraints, or explicit output format.',
+      weaknesses: [
+        {
+          id: 'w1',
+          title: 'No Expert Persona Assigned',
+          explanation: 'Without defining an expert role, the AI generates generic, surface-level responses.',
+          severity: 'high',
+        },
+        {
+          id: 'w2',
+          title: 'Missing Constraints & Format',
+          explanation: 'Lacks required format (markdown tables, code blocks) and bounds, causing verbose fluff.',
+          severity: 'medium',
+        },
+      ],
+      strengths: ['Core intent is direct and understandable'],
+      options: {
+        quick: {
+          id: 'quick',
+          title: '⚡ Quick Polish',
+          tag: 'Clarity Boost',
+          description: 'Streamlines requirements and requests direct, actionable examples',
+          prompt: `Provide a concise, practical breakdown with concrete examples for the following task:\n${text}`,
+          whyItWorks: 'Eliminates conversational filler and focuses directly on actionable knowledge.',
+        },
+        expert: {
+          id: 'expert',
+          title: '🧠 Structured Prompt',
+          tag: 'Role-Task-Format',
+          description: 'Applies prompt engineering best practices with persona and constraints',
+          prompt: `[Role]: Senior Principal Specialist in the field\n[Objective]: Provide an in-depth, production-grade solution for: ${text}\n[Constraints]:\n- Avoid abstract explanations; include concrete execution steps and code/examples\n- Highlight potential edge cases or security risks\n[Output Format]: 1) Executive Summary 2) Step-by-Step Implementation 3) Best Practices`,
+          whyItWorks: 'Role-Task-Constraint-Format guarantees robust, production-ready outputs without hallucinations.',
+        },
+        engine: {
+          id: 'engine',
+          title: '🚀 Deep Reasoning (CoT)',
+          tag: 'Chain-of-Thought',
+          description: 'Activates multi-step logical reasoning before generating the final answer',
+          prompt: `Think step-by-step before answering.\nUser Request: ${text}\nFirst, analyze the underlying requirements, trade-offs, and edge cases. Then, provide the optimal, production-ready solution with clean explanations.`,
+          whyItWorks: 'Forces the model to utilize reasoning tokens to verify logic before delivering the final answer.',
         },
       },
     };
