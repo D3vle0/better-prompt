@@ -169,6 +169,13 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
             </>
           )}
         </Button>
+
+        {isLoading && (
+          <div className="flex items-center justify-center gap-2 py-1 text-[11px] text-muted-foreground animate-pulse">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+            <span>AI 모델이 프롬프트를 분석하고 최적화 대안을 도출 중입니다...</span>
+          </div>
+        )}
       </div>
 
       {/* Analysis Result - Clean flat layout without rectangular pill badges or nested cards */}
