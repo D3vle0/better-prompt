@@ -1,0 +1,90 @@
+import React, { useState } from 'react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { PromptAnalyzer } from '@/components/PromptAnalyzer';
+import { ImagePromptStudio } from '@/components/ImagePromptStudio';
+import { HistoryTab } from '@/components/HistoryTab';
+import { SettingsTab } from '@/components/SettingsTab';
+import { Sparkles, Image as ImageIcon, History, Settings, Zap } from 'lucide-react';
+
+export const Popup: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('analyzer');
+
+  return (
+    <div className="w-[480px] min-h-[580px] max-h-[640px] bg-background text-foreground flex flex-col font-sans select-none overflow-hidden border">
+      {/* Top Header */}
+      <header className="px-4 py-3 border-b flex items-center justify-between shrink-0 bg-card">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-sm font-semibold tracking-tight">
+                BetterPrompt
+              </h1>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-normal">
+                DeepSeek Flash
+              </Badge>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Grammarly for AI Prompts
+            </p>
+          </div>
+        </div>
+
+        <Badge variant="outline" className="text-[10px] px-2 py-0.5">
+          실시간 교정 가동 중
+        </Badge>
+      </header>
+
+      {/* Main Tab Navigation */}
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="flex-1 flex flex-col overflow-hidden"
+      >
+        <div className="px-3 pt-2 pb-1.5 border-b bg-muted/30">
+          <TabsList className="grid grid-cols-4 w-full h-8">
+            <TabsTrigger value="analyzer" className="text-xs flex items-center gap-1 py-1">
+              <Sparkles className="w-3.5 h-3.5" />
+              진단 & 교정
+            </TabsTrigger>
+            <TabsTrigger value="image" className="text-xs flex items-center gap-1 py-1">
+              <ImageIcon className="w-3.5 h-3.5" />
+              이미지 스튜디오
+            </TabsTrigger>
+            <TabsTrigger value="history" className="text-xs flex items-center gap-1 py-1">
+              <History className="w-3.5 h-3.5" />
+              히스토리
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="text-xs flex items-center gap-1 py-1">
+              <Settings className="w-3.5 h-3.5" />
+              설정
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* Scrollable Content Container */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <TabsContent value="analyzer" className="m-0 focus-visible:outline-none">
+            <PromptAnalyzer />
+          </TabsContent>
+
+          <TabsContent value="image" className="m-0 focus-visible:outline-none">
+            <ImagePromptStudio />
+          </TabsContent>
+
+          <TabsContent value="history" className="m-0 focus-visible:outline-none">
+            <HistoryTab />
+          </TabsContent>
+
+          <TabsContent value="settings" className="m-0 focus-visible:outline-none">
+            <SettingsTab />
+          </TabsContent>
+        </div>
+      </Tabs>
+    </div>
+  );
+};
