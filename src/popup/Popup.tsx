@@ -137,12 +137,8 @@ export const Popup: React.FC = () => {
 
         {/* Activation Hero Container */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-5">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shadow-sm">
-            <Globe className="w-7 h-7 text-primary" />
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-base font-bold tracking-tight text-foreground">
+          <div className="space-y-2.5">
+            <h2 className="text-lg font-bold tracking-tight text-foreground leading-snug">
               이 사이트에서 BetterPrompt를<br />활성화하시겠습니까?
             </h2>
 
