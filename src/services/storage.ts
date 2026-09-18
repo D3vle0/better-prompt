@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   preferredLanguage: 'ko',
   deepThinkingEnabled: false,
   allowedSites: DEFAULT_ALLOWED_SITES,
+  isDockerProduction: false,
 };
 
 const SETTINGS_KEY = 'better_prompt_settings';

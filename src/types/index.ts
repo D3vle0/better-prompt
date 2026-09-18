@@ -39,6 +39,18 @@ export interface AppSettings {
   defaultImageEngine?: 'midjourney' | 'flux' | 'dalle' | 'sdxl';
   deepThinkingEnabled: boolean;
   allowedSites: string[];
+  isDockerProduction?: boolean;
+}
+
+export interface BackendTestResult {
+  success: boolean;
+  latencyMs: number;
+  message: string;
+  model?: string;
+  uptime?: number;
+  environment?: string;
+  isProduction?: boolean;
+  isDocker?: boolean;
 }
 
 export interface HistoryItem {

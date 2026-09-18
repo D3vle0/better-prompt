@@ -1,4 +1,4 @@
-import { AppSettings, PromptAnalysisResult } from '@/types';
+import { AppSettings, PromptAnalysisResult, BackendTestResult } from '@/types';
 import { getSettings } from './storage';
 
 export async function analyzePromptWithAI(
@@ -60,7 +60,7 @@ function getClientSessionId(): string {
     }
     return sid;
   } catch {
-    return 'session_ext_default';
+    return 'session_fallback_' + Date.now();
   }
 }
 
@@ -68,8 +68,8 @@ export async function callBackendAnalyze(
   promptText: string,
   settings: AppSettings
 ): Promise<PromptAnalysisResult> {
-  const backendUrl = (settings.backendUrl || 'http://localhost:3001').replace(/\/+$/, '');
-  const endpoint = `${backendUrl}/api/analyze`;
+  const cleanUrl = (settings.backendUrl || 'http://localhost:3001').replace(/\/+$/, '');
+  const endpoint = `${cleanUrl}/api/analyze`;
   const sessionId = getClientSessionId();
 
   try {
@@ -88,9 +88,8 @@ export async function callBackendAnalyze(
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.warn(`Backend API Error (${response.status}): ${errorText}. Using local fallback.`);
-      return generateFallbackAnalysis(promptText, settings);
+      const errText = await response.text();
+      throw new Error(`백엔드 서버 응답 오류 (${response.status}): ${errText.slice(0, 100)}`);
     }
 
     const data: PromptAnalysisResult = await response.json();
@@ -104,7 +103,7 @@ export async function callBackendAnalyze(
 
 export async function testBackendConnection(
   backendUrl: string
-): Promise<{ success: boolean; latencyMs: number; message: string; model?: string; uptime?: number }> {
+): Promise<BackendTestResult> {
   // If in Chrome Extension content script, route via background worker to bypass page CSP restrictions
   if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage && !chrome.runtime.getBackgroundPage) {
     try {
@@ -164,6 +163,9 @@ export async function testBackendConnection(
       message: `연결 정상 (${data.model || 'mimo-v2.5'})`,
       model: data.model,
       uptime: data.uptime,
+      environment: data.environment,
+      isProduction: Boolean(data.isProduction || data.environment === 'production'),
+      isDocker: Boolean(data.isDocker),
     };
   } catch (err: any) {
     return {
