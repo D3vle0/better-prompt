@@ -7,37 +7,47 @@ export async function analyzePromptWithAI(
 ): Promise<PromptAnalysisResult> {
   const settings = { ...(await getSettings()), ...(customSettings || {}) };
 
-  // Check if we are running in Chrome Extension content script
-  // In content scripts, host page CSP can block external requests. We route via background worker.
-  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage && !chrome.runtime.getBackgroundPage) {
+  // Check if we are running in a valid Chrome Extension content script context
+  const isExtensionContextValid =
+    typeof chrome !== 'undefined' &&
+    Boolean(chrome.runtime && chrome.runtime.id && chrome.runtime.sendMessage);
+
+  if (isExtensionContextValid && !chrome.runtime.getBackgroundPage) {
     try {
       const response = await new Promise<any>((resolve, reject) => {
-        chrome.runtime.sendMessage(
-          {
-            type: 'ANALYZE_PROMPT',
-            payload: { promptText, settings },
-          },
-          (res) => {
-            if (chrome.runtime.lastError) {
-              return reject(new Error(chrome.runtime.lastError.message));
-            }
-            if (res && res.error) {
-              return reject(new Error(res.error));
-            }
-            resolve(res);
+        try {
+          if (!chrome.runtime?.id) {
+            return reject(new Error('Extension context invalidated'));
           }
-        );
+          chrome.runtime.sendMessage(
+            {
+              type: 'ANALYZE_PROMPT',
+              payload: { promptText, settings },
+            },
+            (res) => {
+              if (chrome.runtime?.lastError) {
+                return reject(new Error(chrome.runtime.lastError.message));
+              }
+              if (res && res.error) {
+                return reject(new Error(res.error));
+              }
+              resolve(res);
+            }
+          );
+        } catch (syncErr) {
+          reject(syncErr);
+        }
       });
 
       if (response && response.data) {
         return response.data;
       }
     } catch (err) {
-      console.warn('Background message failed, attempting direct fetch:', err);
+      console.warn('Background message failed (context invalidated or CSP), falling back to direct fetch:', err);
     }
   }
 
-  // Direct fetch (used in background script, popup, or standalone demo)
+  // Direct fetch (used in background script, popup, standalone demo, or as safe fallback)
   return callBackendAnalyze(promptText, settings);
 }
 

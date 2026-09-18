@@ -65,16 +65,25 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
         setActiveOptionTab('expert');
       }
 
-      await addHistoryItem({
-        originalPrompt: data.originalPrompt,
-        category: data.category,
-        qualityScore: data.qualityScore,
-        enhancedPrompt: data.options[data.category === 'image' ? 'engine' : 'expert'].prompt,
-        enhancedMode: data.category === 'image' ? 'engine' : 'expert',
-      });
+      try {
+        await addHistoryItem({
+          originalPrompt: data.originalPrompt,
+          category: data.category,
+          qualityScore: data.qualityScore,
+          enhancedPrompt: data.options[data.category === 'image' ? 'engine' : 'expert'].prompt,
+          enhancedMode: data.category === 'image' ? 'engine' : 'expert',
+        });
+      } catch (histErr) {
+        console.warn('Failed to save history item (non-critical):', histErr);
+      }
     } catch (err: any) {
       console.error('Analysis error:', err);
-      alert(`분석 실패: ${err.message || '다시 시도해주세요'}`);
+      const isContextInvalidated = String(err?.message || '').includes('Extension context invalidated');
+      if (isContextInvalidated) {
+        alert('익스텐션이 업데이트되었습니다. 원활한 연동을 위해 현재 웹페이지를 새로고침(F5)해주세요.');
+      } else {
+        alert(`분석 실패: ${err.message || '다시 시도해주세요'}`);
+      }
     } finally {
       setIsLoading(false);
     }

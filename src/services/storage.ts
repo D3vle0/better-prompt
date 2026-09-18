@@ -11,23 +11,18 @@ const SETTINGS_KEY = 'better_prompt_settings';
 const HISTORY_KEY = 'better_prompt_history';
 
 function isChromeStorageAvailable(): boolean {
-  return (
-    typeof chrome !== 'undefined' &&
-    Boolean(chrome.storage) &&
-    Boolean(chrome.storage.local)
-  );
+  try {
+    return (
+      typeof chrome !== 'undefined' &&
+      Boolean(chrome.runtime && chrome.runtime.id) &&
+      Boolean(chrome.storage && chrome.storage.local)
+    );
+  } catch {
+    return false;
+  }
 }
 
-export async function getSettings(): Promise<AppSettings> {
-  if (isChromeStorageAvailable()) {
-    return new Promise((resolve) => {
-      chrome.storage.local.get([SETTINGS_KEY], (result) => {
-        const saved = result[SETTINGS_KEY];
-        resolve({ ...DEFAULT_SETTINGS, ...(saved || {}) });
-      });
-    });
-  }
-
+function getLocalSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (raw) {
@@ -39,35 +34,62 @@ export async function getSettings(): Promise<AppSettings> {
   return DEFAULT_SETTINGS;
 }
 
+export async function getSettings(): Promise<AppSettings> {
+  if (isChromeStorageAvailable()) {
+    try {
+      return await new Promise((resolve) => {
+        try {
+          chrome.storage.local.get([SETTINGS_KEY], (result) => {
+            if (chrome.runtime?.lastError) {
+              resolve(getLocalSettings());
+              return;
+            }
+            const saved = result ? result[SETTINGS_KEY] : null;
+            resolve({ ...DEFAULT_SETTINGS, ...(saved || {}) });
+          });
+        } catch {
+          resolve(getLocalSettings());
+        }
+      });
+    } catch {
+      return getLocalSettings();
+    }
+  }
+
+  return getLocalSettings();
+}
+
 export async function saveSettings(settings: Partial<AppSettings>): Promise<AppSettings> {
   const current = await getSettings();
   const updated: AppSettings = { ...current, ...settings };
 
-  if (isChromeStorageAvailable()) {
-    return new Promise((resolve) => {
-      chrome.storage.local.set({ [SETTINGS_KEY]: updated }, () => {
-        resolve(updated);
-      });
-    });
-  }
-
+  // Always sync to localStorage as a safety mirror
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
   } catch (e) {
     console.warn('Failed to write to localStorage', e);
   }
+
+  if (isChromeStorageAvailable()) {
+    try {
+      return await new Promise((resolve) => {
+        try {
+          chrome.storage.local.set({ [SETTINGS_KEY]: updated }, () => {
+            resolve(updated);
+          });
+        } catch {
+          resolve(updated);
+        }
+      });
+    } catch {
+      return updated;
+    }
+  }
+
   return updated;
 }
 
-export async function getHistory(): Promise<HistoryItem[]> {
-  if (isChromeStorageAvailable()) {
-    return new Promise((resolve) => {
-      chrome.storage.local.get([HISTORY_KEY], (result) => {
-        resolve(result[HISTORY_KEY] || []);
-      });
-    });
-  }
-
+function getLocalHistory(): HistoryItem[] {
   try {
     const raw = localStorage.getItem(HISTORY_KEY);
     if (raw) {
@@ -77,6 +99,30 @@ export async function getHistory(): Promise<HistoryItem[]> {
     console.warn('Failed to read history from localStorage', e);
   }
   return [];
+}
+
+export async function getHistory(): Promise<HistoryItem[]> {
+  if (isChromeStorageAvailable()) {
+    try {
+      return await new Promise((resolve) => {
+        try {
+          chrome.storage.local.get([HISTORY_KEY], (result) => {
+            if (chrome.runtime?.lastError) {
+              resolve(getLocalHistory());
+              return;
+            }
+            resolve((result && result[HISTORY_KEY]) || getLocalHistory());
+          });
+        } catch {
+          resolve(getLocalHistory());
+        }
+      });
+    } catch {
+      return getLocalHistory();
+    }
+  }
+
+  return getLocalHistory();
 }
 
 export async function addHistoryItem(item: Omit<HistoryItem, 'id' | 'timestamp'>): Promise<HistoryItem[]> {
@@ -90,19 +136,29 @@ export async function addHistoryItem(item: Omit<HistoryItem, 'id' | 'timestamp'>
   // Keep last 50 items
   const updated = [newItem, ...current.slice(0, 49)];
 
-  if (isChromeStorageAvailable()) {
-    return new Promise((resolve) => {
-      chrome.storage.local.set({ [HISTORY_KEY]: updated }, () => {
-        resolve(updated);
-      });
-    });
-  }
-
+  // Always mirror to localStorage
   try {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
   } catch (e) {
     console.warn('Failed to write history to localStorage', e);
   }
+
+  if (isChromeStorageAvailable()) {
+    try {
+      return await new Promise((resolve) => {
+        try {
+          chrome.storage.local.set({ [HISTORY_KEY]: updated }, () => {
+            resolve(updated);
+          });
+        } catch {
+          resolve(updated);
+        }
+      });
+    } catch {
+      return updated;
+    }
+  }
+
   return updated;
 }
 
@@ -112,29 +168,51 @@ export async function toggleFavorite(id: string): Promise<HistoryItem[]> {
     item.id === id ? { ...item, isFavorite: !item.isFavorite } : item
   );
 
-  if (isChromeStorageAvailable()) {
-    return new Promise((resolve) => {
-      chrome.storage.local.set({ [HISTORY_KEY]: updated }, () => {
-        resolve(updated);
-      });
-    });
-  }
-
   try {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
   } catch (e) {
-    console.warn('Failed to update favorite', e);
+    console.warn('Failed to update favorite in localStorage', e);
   }
+
+  if (isChromeStorageAvailable()) {
+    try {
+      return await new Promise((resolve) => {
+        try {
+          chrome.storage.local.set({ [HISTORY_KEY]: updated }, () => {
+            resolve(updated);
+          });
+        } catch {
+          resolve(updated);
+        }
+      });
+    } catch {
+      return updated;
+    }
+  }
+
   return updated;
 }
 
 export async function clearHistory(): Promise<void> {
-  if (isChromeStorageAvailable()) {
-    return new Promise((resolve) => {
-      chrome.storage.local.remove([HISTORY_KEY], () => {
-        resolve();
-      });
-    });
+  try {
+    localStorage.removeItem(HISTORY_KEY);
+  } catch (e) {
+    console.warn('Failed to remove history from localStorage', e);
   }
-  localStorage.removeItem(HISTORY_KEY);
+
+  if (isChromeStorageAvailable()) {
+    try {
+      await new Promise<void>((resolve) => {
+        try {
+          chrome.storage.local.remove([HISTORY_KEY], () => {
+            resolve();
+          });
+        } catch {
+          resolve();
+        }
+      });
+    } catch {
+      // Ignored
+    }
+  }
 }
