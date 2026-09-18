@@ -133,9 +133,6 @@ export const Popup: React.FC = () => {
               BetterPrompt
             </h1>
           </div>
-          <span className="text-[10px] text-muted-foreground font-mono bg-muted/60 px-2 py-0.5 rounded border border-border/40">
-            사이트 미허용 상태
-          </span>
         </header>
 
         {/* Activation Hero Container */}
@@ -216,12 +213,6 @@ export const Popup: React.FC = () => {
             BetterPrompt
           </h1>
         </div>
-        {currentHostname && (
-          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono bg-muted/50 px-2 py-0.5 rounded border border-border/40">
-            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-            <span className="truncate max-w-[150px]">{currentHostname}</span>
-          </div>
-        )}
       </header>
 
       {/* Main Tab Navigation */}

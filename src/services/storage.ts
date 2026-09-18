@@ -79,13 +79,12 @@ export async function getSettings(): Promise<AppSettings> {
  * Checks if the given hostname/domain is allowed.
  * Normalizes 'www.', lowercases, and checks exact match or subdomain match.
  */
-export function isSiteAllowed(hostname: string, allowedSites: string[] = DEFAULT_ALLOWED_SITES): boolean {
+export function isSiteAllowed(hostname: string, allowedSites?: string[]): boolean {
   if (!hostname) return false;
   const cleanHost = hostname.toLowerCase().replace(/^www\./, '');
+  const sites = allowedSites !== undefined ? allowedSites : DEFAULT_ALLOWED_SITES;
 
-  const allSites = Array.from(new Set([...DEFAULT_ALLOWED_SITES, ...(allowedSites || [])]));
-
-  return allSites.some((site) => {
+  return sites.some((site) => {
     const cleanSite = site.toLowerCase().replace(/^www\./, '');
     return cleanHost === cleanSite || cleanHost.endsWith('.' + cleanSite);
   });
@@ -95,7 +94,7 @@ export async function addAllowedSite(domain: string): Promise<string[]> {
   if (!domain) return DEFAULT_ALLOWED_SITES;
   const clean = domain.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0].split(':')[0];
   const settings = await getSettings();
-  const current = settings.allowedSites || DEFAULT_ALLOWED_SITES;
+  const current = settings.allowedSites ?? DEFAULT_ALLOWED_SITES;
   if (!current.includes(clean)) {
     const updated = [...current, clean];
     await saveSettings({ allowedSites: updated });
@@ -105,10 +104,10 @@ export async function addAllowedSite(domain: string): Promise<string[]> {
 }
 
 export async function removeAllowedSite(domain: string): Promise<string[]> {
-  if (!domain) return DEFAULT_ALLOWED_SITES;
+  if (!domain) return [];
   const clean = domain.toLowerCase().replace(/^www\./, '');
   const settings = await getSettings();
-  const current = settings.allowedSites || DEFAULT_ALLOWED_SITES;
+  const current = settings.allowedSites ?? DEFAULT_ALLOWED_SITES;
   const updated = current.filter((s) => s.toLowerCase().replace(/^www\./, '') !== clean);
   await saveSettings({ allowedSites: updated });
   return updated;

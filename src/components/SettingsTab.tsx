@@ -285,37 +285,30 @@ export const SettingsTab: React.FC = () => {
 
           <div className="p-2.5 rounded-lg border border-border/40 bg-muted/20 space-y-2">
             <div className="flex flex-wrap gap-1.5">
-              {(settings.allowedSites || DEFAULT_ALLOWED_SITES).map((site) => {
-                const isDefault = ['chatgpt.com', 'chat.openai.com', 'gemini.google.com'].includes(site);
-                return (
-                  <div
+              {(settings.allowedSites || DEFAULT_ALLOWED_SITES).length === 0 ? (
+                <p className="text-xs text-muted-foreground py-1">
+                  활성화된 사이트가 없습니다.
+                </p>
+              ) : (
+                (settings.allowedSites || DEFAULT_ALLOWED_SITES).map((site) => (
+                  <button
                     key={site}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted text-xs font-mono border border-border/50 text-foreground"
+                    type="button"
+                    onClick={async () => {
+                      const updated = await removeAllowedSite(site);
+                      setSettings((prev) => ({ ...prev, allowedSites: updated }));
+                    }}
+                    className="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted text-xs font-mono border border-border/50 text-foreground hover:bg-destructive/15 hover:border-destructive/40 hover:text-destructive transition-all cursor-pointer select-none"
+                    title="클릭 시 활성화 목록에서 삭제"
                   >
                     <span>{site}</span>
-                    {isDefault ? (
-                      <span className="text-[9px] bg-primary/20 text-foreground font-sans px-1 rounded font-medium">
-                        기본
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const updated = await removeAllowedSite(site);
-                          setSettings((prev) => ({ ...prev, allowedSites: updated }));
-                        }}
-                        className="text-muted-foreground hover:text-destructive transition-colors ml-0.5"
-                        title="허용 해제"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+                    <X className="w-3 h-3 text-muted-foreground group-hover:text-destructive transition-colors" />
+                  </button>
+                ))
+              )}
             </div>
             <p className="text-[10px] text-muted-foreground pt-0.5">
-              * 새로운 사이트는 해당 사이트에서 익스텐션 아이콘을 클릭하여 원클릭으로 활성화할 수 있습니다.
+              * 도메인을 클릭하면 활성화 목록에서 즉시 삭제됩니다.
             </p>
           </div>
         </div>
