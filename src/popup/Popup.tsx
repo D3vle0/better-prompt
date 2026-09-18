@@ -36,20 +36,20 @@ export const Popup: React.FC = () => {
         className="flex-1 flex flex-col overflow-hidden"
       >
         <div className="px-3 pt-2 pb-1.5 border-b bg-muted/30 shrink-0">
-          <TabsList className="grid grid-cols-4 w-full h-8">
-            <TabsTrigger value="analyzer" className="text-xs flex items-center gap-1 py-1">
+          <TabsList className="grid grid-cols-4 w-full h-9">
+            <TabsTrigger value="analyzer" className="text-xs flex items-center justify-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" />
               진단 & 교정
             </TabsTrigger>
-            <TabsTrigger value="image" className="text-xs flex items-center gap-1 py-1">
+            <TabsTrigger value="image" className="text-xs flex items-center justify-center gap-1.5">
               <ImageIcon className="w-3.5 h-3.5" />
               이미지 스튜디오
             </TabsTrigger>
-            <TabsTrigger value="history" className="text-xs flex items-center gap-1 py-1">
+            <TabsTrigger value="history" className="text-xs flex items-center justify-center gap-1.5">
               <History className="w-3.5 h-3.5" />
               히스토리
             </TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs flex items-center gap-1 py-1">
+            <TabsTrigger value="settings" className="text-xs flex items-center justify-center gap-1.5">
               <Settings className="w-3.5 h-3.5" />
               설정
             </TabsTrigger>
