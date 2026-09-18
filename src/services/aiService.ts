@@ -1,7 +1,7 @@
 import { AppSettings, PromptAnalysisResult } from '@/types';
 import { getSettings } from './storage';
 
-const SYSTEM_PROMPT = `You are "BetterPrompt", the world-class Prompt Doctor & Engineering Assistant (like Grammarly, but for Generative & Conversational AI).
+const SYSTEM_PROMPT = `You are "BetterPrompt", the world-class Prompt Doctor & Engineering Assistant for Generative & Conversational AI.
 Your mission is to analyze the user's raw prompt, diagnose its quality, and generate 3 levels of superior alternatives that prevent wasted credits and time.
 
 Output MUST be a strictly valid JSON object with the following structure (no markdown fences, no explanatory text outside JSON):
@@ -350,11 +350,11 @@ function generateFallbackAnalysis(
       },
       engine: {
         id: 'engine',
-        title: '🚀 DeepSeek V4.1 추론 특화 (CoT Prompt)',
+        title: '🚀 심층 추론 특화 (CoT Prompt)',
         tag: '단계별 심층 추론',
-        description: 'DeepSeek 모델의 사고(Thinking) 능력을 극대화하는 Chain-of-Thought 프롬프트',
+        description: 'AI 모델의 사고(Thinking) 능력을 극대화하는 Chain-of-Thought 프롬프트',
         prompt: `Think step-by-step before answering.\nUser Request: ${text}\nFirst, analyze the underlying requirements and edge cases. Then, provide the optimal, production-ready solution with clean explanations.`,
-        whyItWorks: 'DeepSeek V4.1 Flash의 Chain-of-Thought 추론 메커니즘을 활성화하여 정확도와 깊이를 극대화합니다.',
+        whyItWorks: 'Chain-of-Thought 심층 추론 메커니즘을 활성화하여 정확도와 깊이를 극대화합니다.',
       },
     },
   };

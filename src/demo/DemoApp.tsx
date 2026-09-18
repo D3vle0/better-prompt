@@ -86,27 +86,14 @@ export const DemoApp: React.FC = () => {
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       {/* Top Navbar */}
       <header className="border-b bg-card px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
-            <Sparkles className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-sm font-semibold tracking-tight">
-                BetterPrompt
-              </h1>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                shadcn/ui
-              </Badge>
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
-                DeepSeek V4.1 Flash
-              </Badge>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
+              <Sparkles className="w-4 h-4" />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Grammarly for AI Prompts • 실시간 브라우저 프롬프트 진단 & 교정
-            </p>
+            <h1 className="text-sm font-semibold tracking-tight">
+              BetterPrompt
+            </h1>
           </div>
-        </div>
 
         {/* View Toggle */}
         <div className="flex items-center gap-1.5 bg-muted p-1 rounded-md">
@@ -169,9 +156,6 @@ export const DemoApp: React.FC = () => {
                     >
                       <div className="w-full flex items-center justify-between text-xs font-medium">
                         <span>{preset.title}</span>
-                        <Badge variant="outline" className="text-[10px] font-normal">
-                          선택
-                        </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                         "{preset.prompt}"
@@ -208,7 +192,7 @@ export const DemoApp: React.FC = () => {
                   </div>
                   <div className="flex items-start gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-foreground shrink-0 mt-0.5" />
-                    <span><strong>DeepSeek V4.1 Flash</strong>: 초저지연 프롬프트 품질 진단 및 3단계 최적화</span>
+                    <span><strong>초저지연 AI 엔진</strong>: 실시간 프롬프트 품질 진단 및 3단계 최적화</span>
                   </div>
                 </CardContent>
               </Card>
@@ -228,9 +212,9 @@ export const DemoApp: React.FC = () => {
                       https://chatgpt.com (가상 AI 웹페이지 시뮬레이션)
                     </span>
                   </div>
-                  <Badge variant="outline" className="text-[10px]">
-                    Content Script Active
-                  </Badge>
+                  <span className="text-[11px] text-muted-foreground font-mono">
+                    Active
+                  </span>
                 </CardHeader>
 
                 {/* Simulated Chat Messages */}
@@ -295,13 +279,13 @@ export const DemoApp: React.FC = () => {
                   </div>
 
                   <div className="w-full flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span>💡 입력창 우측 하단의 뱃지를 누르면 Grammarly처럼 정밀 교정창이 열립니다.</span>
+                    <span>💡 입력창 우측 하단의 원형 버튼을 누르면 정밀 교정창이 열립니다.</span>
                     <span className="font-mono">Enter / 전송</span>
                   </div>
                 </CardFooter>
               </Card>
 
-              {/* Floating Grammarly Widget mounted over simulated textarea */}
+              {/* Floating Widget mounted over simulated textarea */}
               {textareaRect && (
                 <FloatingWidget
                   targetElement={textareaRef.current}
@@ -339,7 +323,7 @@ export const DemoApp: React.FC = () => {
 
       {/* Footer */}
       <footer className="border-t py-4 px-6 text-center text-xs text-muted-foreground bg-card">
-        BetterPrompt — Grammarly for AI Prompts • Built with shadcn/ui and OpenCode Go DeepSeek V4.1 Flash
+        BetterPrompt • AI Prompt Assistant
       </footer>
     </div>
   );

@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { analyzePromptWithAI } from '@/services/aiService';
 import {
@@ -241,7 +238,7 @@ export const ImagePromptStudio: React.FC<{ onApply?: (text: string) => void }> =
         <div className="space-y-1.5">
           <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Cpu className="w-3.5 h-3.5" />
-            타겟 생성 모델
+            타겟 모델
           </Label>
           <div className="space-y-1">
             {ENGINES.map((eng) => (
@@ -263,76 +260,75 @@ export const ImagePromptStudio: React.FC<{ onApply?: (text: string) => void }> =
         </div>
       </div>
 
-      {/* Live Assembled Output Card */}
-      <Card>
-        <CardHeader className="p-3.5 pb-2 border-b">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
-              {enhancedResult ? 'DeepSeek V4.1 Flash 완성본' : '실시간 조합 프롬프트'}
-            </CardTitle>
-            <Badge variant="outline" className="text-[10px] font-mono">
-              {selectedRatio.param}
-            </Badge>
-          </div>
-        </CardHeader>
+      <Separator />
 
-        <CardContent className="p-3.5 space-y-3">
-          <ScrollArea className="max-h-[110px] rounded-md border bg-muted/30 p-2.5 font-mono text-xs whitespace-pre-wrap leading-relaxed">
-            {currentDisplayPrompt}
-          </ScrollArea>
+      {/* Live Assembled Output - Clean flat container without nested card */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
+            {enhancedResult ? 'AI 고품질 완성본' : '실시간 조합 프롬프트'}
+          </Label>
+          <span className="text-[11px] font-mono text-muted-foreground">
+            {selectedRatio.param}
+          </span>
+        </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={handleDeepSeekEnhance}
-              disabled={isEnhancing || !subject.trim()}
-              className="flex-1 h-8 text-xs font-medium"
-            >
-              {isEnhancing ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                  DeepSeek Flash 최적화 중...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                  AI로 영문 시각 묘사 극대화
-                </>
-              )}
-            </Button>
+        <div className="p-3 rounded-lg border border-border/40 bg-muted/30 font-mono text-xs whitespace-pre-wrap leading-relaxed max-h-[120px] overflow-y-auto select-all" style={{ borderRadius: '8px' }}>
+          {currentDisplayPrompt}
+        </div>
 
-            <Button
-              onClick={handleCopy}
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs px-3"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-3.5 h-3.5 mr-1" />
-                  복사됨
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5 mr-1" />
-                  복사
-                </>
-              )}
-            </Button>
-
-            {onApply && (
-              <Button
-                onClick={() => onApply(currentDisplayPrompt)}
-                variant="secondary"
-                size="sm"
-                className="h-8 text-xs"
-              >
-                적용
-              </Button>
+        <div className="flex items-center gap-2 pt-1">
+          <Button
+            onClick={handleDeepSeekEnhance}
+            disabled={isEnhancing || !subject.trim()}
+            className="flex-1 h-8 text-xs font-medium rounded-lg"
+            style={{ borderRadius: '8px' }}
+          >
+            {isEnhancing ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                AI 최적화 중...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                AI로 영문 시각 묘사 극대화
+              </>
             )}
-          </div>
-        </CardContent>
-      </Card>
+          </Button>
+
+          <Button
+            onClick={handleCopy}
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs px-3"
+          >
+            {copied ? (
+              <>
+                <Check className="w-3.5 h-3.5 mr-1" />
+                복사됨
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5 mr-1" />
+                복사
+              </>
+            )}
+          </Button>
+
+          {onApply && (
+            <Button
+              onClick={() => onApply(currentDisplayPrompt)}
+              variant="secondary"
+              size="sm"
+              className="h-8 text-xs"
+            >
+              적용
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

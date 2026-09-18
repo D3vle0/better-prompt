@@ -1,5 +1,4 @@
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
 
 interface PromptQualityGaugeProps {
   score: number; // 0 - 100
@@ -10,21 +9,17 @@ export const PromptQualityGauge: React.FC<PromptQualityGaugeProps> = ({
   score,
   size = 'md',
 }) => {
-  let badgeVariant: 'destructive' | 'secondary' | 'default' | 'outline' = 'destructive';
-  let statusText = '개선 시급 (초급)';
+  let statusText = '개선 시급';
   let strokeColor = 'hsl(var(--destructive))';
 
   if (score >= 80) {
-    badgeVariant = 'default';
-    statusText = '최상급 (Master)';
+    statusText = '우수';
     strokeColor = 'hsl(var(--foreground))';
   } else if (score >= 60) {
-    badgeVariant = 'secondary';
-    statusText = '양호함 (Good)';
+    statusText = '양호';
     strokeColor = 'hsl(var(--foreground))';
   } else if (score >= 40) {
-    badgeVariant = 'outline';
-    statusText = '보통 (Needs Work)';
+    statusText = '보통';
     strokeColor = 'hsl(var(--muted-foreground))';
   }
 
@@ -73,9 +68,7 @@ export const PromptQualityGauge: React.FC<PromptQualityGaugeProps> = ({
       <div className="flex flex-col">
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-semibold">프롬프트 품질</span>
-          <Badge variant={badgeVariant} className="text-[10px] px-1.5 py-0 h-4 font-normal">
-            {statusText}
-          </Badge>
+          <span className="text-xs text-muted-foreground">({statusText})</span>
         </div>
         <span className="text-[11px] text-muted-foreground mt-0.5">
           {score < 50

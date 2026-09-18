@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { HistoryItem } from '@/types';
 import { getHistory, toggleFavorite, clearHistory } from '@/services/storage';
@@ -71,7 +68,7 @@ export const HistoryTab: React.FC<{ onSelectPrompt?: (text: string) => void }> =
             type="button"
             variant={!filterFavorite ? "default" : "outline"}
             size="sm"
-            className="h-7 text-xs px-2.5"
+            className="h-7 text-xs px-2.5 font-normal"
             onClick={() => setFilterFavorite(false)}
           >
             전체 ({history.length})
@@ -80,7 +77,7 @@ export const HistoryTab: React.FC<{ onSelectPrompt?: (text: string) => void }> =
             type="button"
             variant={filterFavorite ? "default" : "outline"}
             size="sm"
-            className="h-7 text-xs px-2.5"
+            className="h-7 text-xs px-2.5 font-normal"
             onClick={() => setFilterFavorite(true)}
           >
             <Star className="w-3 h-3 mr-1 fill-current" />
@@ -103,7 +100,7 @@ export const HistoryTab: React.FC<{ onSelectPrompt?: (text: string) => void }> =
 
       <Separator />
 
-      {/* List */}
+      {/* List - Flat rows, no nested card-inside-card */}
       {filteredItems.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground space-y-2">
           <Clock className="w-8 h-8 mx-auto opacity-40" />
@@ -115,87 +112,86 @@ export const HistoryTab: React.FC<{ onSelectPrompt?: (text: string) => void }> =
           </p>
         </div>
       ) : (
-        <ScrollArea className="max-h-[420px] pr-2">
-          <div className="space-y-2.5">
-            {filteredItems.map((item) => (
-              <Card key={item.id}>
-                <CardContent className="p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
-                        {item.category === 'image' ? '이미지' : item.category === 'code' ? '코드' : '텍스트'}
-                      </Badge>
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono">
-                        점수 {item.qualityScore}점
-                      </Badge>
-                      <span className="text-[10px] text-muted-foreground font-mono">
-                        {formatTime(item.timestamp)}
-                      </span>
-                    </div>
+        <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+          {filteredItems.map((item) => (
+            <div
+              key={item.id}
+              className="p-3 rounded-md bg-muted/20 border border-border space-y-2"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="font-medium text-foreground">
+                    {item.category === 'image' ? '이미지' : item.category === 'code' ? '코드' : '텍스트'}
+                  </span>
+                  <span className="text-muted-foreground font-mono text-[11px]">
+                    {item.qualityScore}점
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    • {formatTime(item.timestamp)}
+                  </span>
+                </div>
 
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                      onClick={() => handleToggleFavorite(item.id)}
-                    >
-                      <Star
-                        className={`w-3.5 h-3.5 ${
-                          item.isFavorite ? 'fill-foreground text-foreground' : ''
-                        }`}
-                      />
-                    </Button>
-                  </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onClick={() => handleToggleFavorite(item.id)}
+                >
+                  <Star
+                    className={`w-3.5 h-3.5 ${
+                      item.isFavorite ? 'fill-foreground text-foreground' : ''
+                    }`}
+                  />
+                </Button>
+              </div>
 
-                  {/* Original Snippet */}
-                  <div className="text-xs text-muted-foreground line-clamp-1">
-                    <span className="font-semibold text-foreground mr-1">원문:</span>
-                    {item.originalPrompt}
-                  </div>
+              {/* Original Snippet */}
+              <div className="text-xs text-muted-foreground line-clamp-1">
+                <span className="font-semibold text-foreground mr-1">원문:</span>
+                {item.originalPrompt}
+              </div>
 
-                  {/* Enhanced Snippet */}
-                  <div className="p-2 rounded-md bg-muted/40 border text-xs font-mono text-foreground whitespace-pre-wrap max-h-[80px] overflow-y-auto">
-                    {item.enhancedPrompt}
-                  </div>
+              {/* Enhanced Snippet - Flat pre box */}
+              <div className="p-2 rounded-md bg-muted/40 font-mono text-xs text-foreground whitespace-pre-wrap max-h-[80px] overflow-y-auto">
+                {item.enhancedPrompt}
+              </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center justify-end gap-1.5 pt-1">
-                    {onSelectPrompt && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onSelectPrompt(item.enhancedPrompt)}
-                        className="text-xs h-7 px-2"
-                      >
-                        <ArrowRight className="w-3 h-3 mr-1" />
-                        사용하기
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleCopy(item.enhancedPrompt, item.id)}
-                      className="text-xs h-7 px-2.5"
-                    >
-                      {copiedId === item.id ? (
-                        <>
-                          <Check className="w-3 h-3 mr-1" />
-                          복사됨
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3 h-3 mr-1" />
-                          복사
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </ScrollArea>
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-1.5 pt-0.5">
+                {onSelectPrompt && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onSelectPrompt(item.enhancedPrompt)}
+                    className="text-xs h-6 px-2 font-normal"
+                  >
+                    <ArrowRight className="w-3 h-3 mr-1" />
+                    사용하기
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCopy(item.enhancedPrompt, item.id)}
+                  className="text-xs h-6 px-2.5 font-normal"
+                >
+                  {copiedId === item.id ? (
+                    <>
+                      <Check className="w-3 h-3 mr-1" />
+                      복사됨
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3 mr-1" />
+                      복사
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

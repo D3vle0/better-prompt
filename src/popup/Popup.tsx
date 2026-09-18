@@ -1,42 +1,32 @@
 import React, { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { PromptAnalyzer } from '@/components/PromptAnalyzer';
 import { ImagePromptStudio } from '@/components/ImagePromptStudio';
 import { HistoryTab } from '@/components/HistoryTab';
 import { SettingsTab } from '@/components/SettingsTab';
-import { Sparkles, Image as ImageIcon, History, Settings, Zap } from 'lucide-react';
+import { Sparkles, Image as ImageIcon, History, Settings } from 'lucide-react';
 
 export const Popup: React.FC = () => {
   const [activeTab, setActiveTab] = useState('analyzer');
 
   return (
-    <div className="w-[480px] min-h-[580px] max-h-[640px] bg-background text-foreground flex flex-col font-sans select-none overflow-hidden border">
-      {/* Top Header */}
-      <header className="px-4 py-3 border-b flex items-center justify-between shrink-0 bg-card">
+    <div
+      className="w-[480px] min-h-[580px] max-h-[640px] bg-background text-foreground flex flex-col font-sans select-none overflow-hidden border border-border rounded-xl"
+      style={{ borderRadius: '12px' }}
+    >
+      {/* Top Header - Clean, no subtitle text, no rectangular pills */}
+      <header className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0 bg-card">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs">
+          <div
+            className="w-7 h-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs"
+            style={{ borderRadius: '8px' }}
+          >
             <Sparkles className="w-4 h-4" />
           </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h1 className="text-sm font-semibold tracking-tight">
-                BetterPrompt
-              </h1>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-normal">
-                DeepSeek Flash
-              </Badge>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              Grammarly for AI Prompts
-            </p>
-          </div>
+          <h1 className="text-sm font-semibold tracking-tight">
+            BetterPrompt
+          </h1>
         </div>
-
-        <Badge variant="outline" className="text-[10px] px-2 py-0.5">
-          실시간 교정 가동 중
-        </Badge>
       </header>
 
       {/* Main Tab Navigation */}

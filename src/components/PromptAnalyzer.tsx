@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { PromptQualityGauge } from './PromptQualityGauge';
 import { PromptAnalysisResult, EnhancedOption } from '@/types';
@@ -124,24 +121,23 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
           placeholder="AI에게 요청할 원본 프롬프트를 입력하세요... (예: 사이버펑크 고양이 일러스트 그려줘)"
           value={promptInput}
           onChange={(e) => setPromptInput(e.target.value)}
-          className="min-h-[85px] text-sm resize-y"
+          className="min-h-[85px] text-sm resize-y rounded-lg"
+          style={{ borderRadius: '8px' }}
         />
 
-        {/* Preset Sample Buttons */}
+        {/* Preset Sample Links - Clean text, no rectangular pills */}
         {!result && (
-          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+          <div className="flex flex-wrap items-center gap-2 pt-1">
             <span className="text-[11px] text-muted-foreground">예시:</span>
             {SAMPLE_PROMPTS.map((sample, idx) => (
-              <Button
+              <button
                 key={idx}
                 type="button"
-                variant="outline"
-                size="sm"
-                className="h-6 text-[11px] px-2"
+                className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-4 cursor-pointer bg-transparent border-0 p-0 transition-colors"
                 onClick={() => handleSampleClick(sample.text)}
               >
                 {sample.label}
-              </Button>
+              </button>
             ))}
           </div>
         )}
@@ -149,12 +145,13 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
         <Button
           onClick={() => handleAnalyze()}
           disabled={isLoading || !promptInput.trim()}
-          className="w-full h-9 text-xs font-medium"
+          className="w-full h-9 text-xs font-medium rounded-lg"
+          style={{ borderRadius: '8px' }}
         >
           {isLoading ? (
             <>
               <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1.5" />
-              DeepSeek V4.1 Flash 분석 중...
+              분석 중...
             </>
           ) : (
             <>
@@ -165,82 +162,84 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
         </Button>
       </div>
 
-      {/* Analysis Result Card */}
+      {/* Analysis Result - Clean flat layout without rectangular pill badges or nested cards */}
       {result && (
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="p-4 pb-3">
+        <div className="space-y-4 pt-1">
+          <Separator />
+
+          {/* Quality Header & 1-Line Diagnosis */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <PromptQualityGauge score={result.qualityScore} size="md" />
+              <span className="text-xs text-muted-foreground font-medium">
+                {result.categoryLabel}
+              </span>
+            </div>
+
+            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-muted/40 text-xs" style={{ borderRadius: '8px' }}>
+              <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+              <span className="text-foreground leading-relaxed font-medium">
+                {result.summaryDiagnosis}
+              </span>
+            </div>
+
+            {/* Weaknesses List */}
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <PromptQualityGauge score={result.qualityScore} size="md" />
-                <Badge variant="outline" className="text-xs">
-                  {result.categoryLabel}
-                </Badge>
-              </div>
-            </CardHeader>
-
-            <CardContent className="p-4 pt-0 space-y-3">
-              {/* 1-Line Diagnosis */}
-              <div className="flex items-start gap-2 p-2.5 rounded-md bg-muted/60 border text-xs">
-                <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-                <span className="text-foreground leading-relaxed font-medium">
-                  {result.summaryDiagnosis}
+                <span className="text-xs font-medium text-muted-foreground">
+                  발견된 취약점 ({result.weaknesses.length}개)
                 </span>
+                {result.weaknesses.length > 2 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAllWeaknesses(!showAllWeaknesses)}
+                    className="h-6 text-[11px] px-1.5 text-muted-foreground font-normal rounded-md"
+                    style={{ borderRadius: '6px' }}
+                  >
+                    {showAllWeaknesses ? '접기' : '더보기'}
+                    {showAllWeaknesses ? <ChevronUp className="w-3 h-3 ml-0.5" /> : <ChevronDown className="w-3 h-3 ml-0.5" />}
+                  </Button>
+                )}
               </div>
 
-              {/* Weaknesses List */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    발견된 취약점 ({result.weaknesses.length}개)
-                  </span>
-                  {result.weaknesses.length > 2 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowAllWeaknesses(!showAllWeaknesses)}
-                      className="h-6 text-[11px] px-1.5 text-muted-foreground"
-                    >
-                      {showAllWeaknesses ? '접기' : '더보기'}
-                      {showAllWeaknesses ? <ChevronUp className="w-3 h-3 ml-0.5" /> : <ChevronDown className="w-3 h-3 ml-0.5" />}
-                    </Button>
-                  )}
-                </div>
-
-                <div className="space-y-1">
-                  {(showAllWeaknesses ? result.weaknesses : result.weaknesses.slice(0, 2)).map((w) => (
-                    <div
-                      key={w.id}
-                      className="p-2.5 rounded-md border bg-card text-xs space-y-0.5"
-                    >
-                      <div className="flex items-center justify-between font-medium text-foreground">
-                        <span>• {w.title}</span>
-                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
-                          {w.severity}
-                        </Badge>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground leading-normal mt-1">
-                        {w.explanation}
-                      </p>
+                {(showAllWeaknesses ? result.weaknesses : result.weaknesses.slice(0, 2)).map((w) => (
+                  <div
+                    key={w.id}
+                    className="p-2 text-xs space-y-0.5 rounded-lg bg-muted/20"
+                    style={{ borderRadius: '8px' }}
+                  >
+                    <div className="flex items-center justify-between font-medium text-foreground">
+                      <span>• {w.title}</span>
+                      <span className="text-[10px] uppercase font-mono text-muted-foreground">
+                        {w.severity}
+                      </span>
                     </div>
-                  ))}
-                </div>
+                    <p className="text-[11px] text-muted-foreground leading-normal pl-2.5">
+                      {w.explanation}
+                    </p>
+                  </div>
+                ))}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* 3 Enhanced Recommendations Tabs */}
-          <div className="space-y-2">
+          <Separator />
+
+          {/* 3 Enhanced Recommendations */}
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <Sliders className="w-3.5 h-3.5" />
-                추천 프롬프트 선택
+                추천 프롬프트
               </span>
 
               <Button
                 type="button"
                 variant={showDiff ? "secondary" : "outline"}
                 size="sm"
-                className="h-7 text-[11px] px-2.5"
+                className="h-7 text-[11px] px-2.5 font-normal"
                 onClick={() => setShowDiff(!showDiff)}
               >
                 <ArrowRightLeft className="w-3 h-3 mr-1" />
@@ -253,7 +252,7 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
               onValueChange={(val) => setActiveOptionTab(val as any)}
               className="w-full"
             >
-              <TabsList className="grid grid-cols-3 w-full">
+              <TabsList className="grid grid-cols-3 w-full h-8">
                 <TabsTrigger value="quick" className="text-xs">
                   빠른 보정
                 </TabsTrigger>
@@ -266,114 +265,104 @@ export const PromptAnalyzer: React.FC<PromptAnalyzerProps> = ({
               </TabsList>
 
               {currentOption && (
-                <Card className="mt-2.5">
-                  <CardHeader className="p-3.5 pb-2 border-b">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <CardTitle className="text-xs font-semibold">
-                            {currentOption.title}
-                          </CardTitle>
-                          <Badge variant="secondary" className="text-[10px]">
-                            {currentOption.tag}
-                          </Badge>
-                        </div>
-                        <CardDescription className="text-[11px] mt-0.5">
-                          {currentOption.description}
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <span className="text-xs font-semibold">
+                      {currentOption.title}
+                    </span>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {currentOption.description}
+                    </p>
+                  </div>
 
-                  <CardContent className="p-3.5 space-y-3">
-                    {/* Prompt Content or Diff View */}
-                    {showDiff ? (
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="p-2.5 rounded-md border bg-muted/40 space-y-1">
-                          <span className="text-[10px] font-bold text-muted-foreground">원문 (Before)</span>
-                          <p className="text-muted-foreground whitespace-pre-wrap text-[11px]">
-                            {result.originalPrompt}
-                          </p>
-                        </div>
-                        <div className="p-2.5 rounded-md border bg-card space-y-1">
-                          <span className="text-[10px] font-bold text-foreground">교정본 (After)</span>
-                          <p className="text-foreground whitespace-pre-wrap font-medium text-[11px]">
-                            {currentOption.prompt}
-                          </p>
-                        </div>
+                  {/* Prompt Box or Diff View */}
+                  {showDiff ? (
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="p-2.5 rounded-lg bg-muted/40 space-y-1" style={{ borderRadius: '8px' }}>
+                        <span className="text-[10px] font-bold text-muted-foreground">원문 (Before)</span>
+                        <p className="text-muted-foreground whitespace-pre-wrap text-[11px]">
+                          {result.originalPrompt}
+                        </p>
                       </div>
-                    ) : (
-                      <ScrollArea className="max-h-[180px] rounded-md border bg-muted/30 p-3 font-mono text-xs whitespace-pre-wrap leading-relaxed text-foreground">
-                        {currentOption.prompt}
-                      </ScrollArea>
-                    )}
-
-                    {/* Parameters */}
-                    {currentOption.parameters && Object.keys(currentOption.parameters).length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 items-center">
-                        <span className="text-[10px] font-medium text-muted-foreground">
-                          엔진 파라미터:
-                        </span>
-                        {Object.entries(currentOption.parameters).map(([k, v]) => (
-                          <Badge key={k} variant="outline" className="font-mono text-[10px]">
-                            {v}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Why This Works (Educational Guide) */}
-                    <div className="p-2.5 rounded-md border bg-muted/20 text-xs flex items-start gap-2">
-                      <Lightbulb className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-                      <div className="space-y-0.5">
-                        <span className="font-semibold text-foreground text-[11px]">
-                          교정 원리 & 가이드 (Why this works)
-                        </span>
-                        <p className="text-[11px] text-muted-foreground leading-normal">
-                          {currentOption.whyItWorks}
+                      <div className="p-2.5 rounded-lg bg-muted/60 space-y-1" style={{ borderRadius: '8px' }}>
+                        <span className="text-[10px] font-bold text-foreground">교정본 (After)</span>
+                        <p className="text-foreground whitespace-pre-wrap font-medium text-[11px]">
+                          {currentOption.prompt}
                         </p>
                       </div>
                     </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2 pt-1">
-                      <Button
-                        onClick={() => handleApply(currentOption.prompt)}
-                        className="flex-1 h-8.5 text-xs"
-                      >
-                        {applied ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 mr-1.5" />
-                            {onApplyToTarget ? '입력창에 대체됨' : '복사 완료'}
-                          </>
-                        ) : (
-                          <>
-                            <CornerDownLeft className="w-3.5 h-3.5 mr-1.5" />
-                            {onApplyToTarget ? '입력창에 대체하기' : '프롬프트 적용하기'}
-                          </>
-                        )}
-                      </Button>
-
-                      <Button
-                        onClick={() => handleCopy(currentOption.prompt, currentOption.id)}
-                        variant="outline"
-                        className="h-8.5 text-xs px-3"
-                      >
-                        {copiedId === currentOption.id ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 mr-1" />
-                            복사됨
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5 mr-1" />
-                            복사
-                          </>
-                        )}
-                      </Button>
+                  ) : (
+                    <div
+                      className="p-3 rounded-lg border border-border/40 bg-muted/30 font-mono text-xs whitespace-pre-wrap leading-relaxed max-h-[190px] overflow-y-auto select-all"
+                      style={{ borderRadius: '8px' }}
+                    >
+                      {currentOption.prompt}
                     </div>
-                  </CardContent>
-                </Card>
+                  )}
+
+                  {/* Engine Parameters - Clean typography without rectangular pills */}
+                  {currentOption.parameters && Object.keys(currentOption.parameters).length > 0 && (
+                    <div className="flex flex-wrap gap-2 items-center text-xs text-muted-foreground">
+                      <span className="text-[11px] font-medium">
+                        파라미터:
+                      </span>
+                      {Object.entries(currentOption.parameters).map(([k, v]) => (
+                        <span key={k} className="font-mono text-[11px] text-foreground font-medium">
+                          {v}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Why this works */}
+                  <div className="flex items-start gap-2 text-xs text-muted-foreground pt-0.5">
+                    <Lightbulb className="w-3.5 h-3.5 shrink-0 mt-0.5 text-foreground" />
+                    <div className="space-y-0.5 leading-normal">
+                      <span className="font-medium text-foreground text-[11px]">교정 가이드: </span>
+                      <span className="text-[11px]">{currentOption.whyItWorks}</span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      onClick={() => handleApply(currentOption.prompt)}
+                      className="flex-1 h-8.5 text-xs font-medium rounded-lg"
+                      style={{ borderRadius: '8px' }}
+                    >
+                      {applied ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 mr-1.5" />
+                          {onApplyToTarget ? '입력창에 대체됨' : '복사 완료'}
+                        </>
+                      ) : (
+                        <>
+                          <CornerDownLeft className="w-3.5 h-3.5 mr-1.5" />
+                          {onApplyToTarget ? '입력창에 대체하기' : '프롬프트 적용하기'}
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      onClick={() => handleCopy(currentOption.prompt, currentOption.id)}
+                      variant="outline"
+                      className="h-8.5 text-xs px-3 font-normal rounded-lg"
+                      style={{ borderRadius: '8px' }}
+                    >
+                      {copiedId === currentOption.id ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 mr-1" />
+                          복사됨
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 mr-1" />
+                          복사
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
               )}
             </Tabs>
           </div>
