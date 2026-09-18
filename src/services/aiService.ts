@@ -64,12 +64,13 @@ function getClientSessionId(): string {
   }
 }
 
+export const BACKEND_SERVER_URL = 'https://prompt.devleo.us';
+
 export async function callBackendAnalyze(
   promptText: string,
   settings: AppSettings
 ): Promise<PromptAnalysisResult> {
-  const cleanUrl = (settings.backendUrl || 'http://localhost:3001').replace(/\/+$/, '');
-  const endpoint = `${cleanUrl}/api/analyze`;
+  const endpoint = `${BACKEND_SERVER_URL}/api/analyze`;
   const sessionId = getClientSessionId();
 
   try {
@@ -134,8 +135,7 @@ export async function testBackendConnection(
   }
 
   const startTime = Date.now();
-  const cleanUrl = (backendUrl || 'http://localhost:3001').replace(/\/+$/, '');
-  const endpoint = `${cleanUrl}/api/health`;
+  const endpoint = `${BACKEND_SERVER_URL}/api/health`;
 
   try {
     const res = await fetch(endpoint, {
@@ -182,9 +182,7 @@ export async function enhanceImageWithBackend(
   aspectRatio?: string,
   settings?: AppSettings
 ): Promise<any> {
-  const currentSettings = settings || (await getSettings());
-  const backendUrl = (currentSettings.backendUrl || 'http://localhost:3001').replace(/\/+$/, '');
-  const endpoint = `${backendUrl}/api/enhance-image`;
+  const endpoint = `${BACKEND_SERVER_URL}/api/enhance-image`;
 
   try {
     const res = await fetch(endpoint, {

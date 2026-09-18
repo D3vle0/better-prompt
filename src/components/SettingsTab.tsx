@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -11,59 +9,29 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { AppSettings, BackendTestResult } from '@/types';
-import { getSettings, saveSettings, removeAllowedSite, DEFAULT_ALLOWED_SITES } from '@/services/storage';
-import { testBackendConnection } from '@/services/aiService';
+import { AppSettings } from '@/types';
+import { getSettings, saveSettings, removeAllowedSite, DEFAULT_ALLOWED_SITES, BACKEND_SERVER_URL } from '@/services/storage';
 import {
-  Server,
   Globe,
-  CheckCircle2,
-  XCircle,
-  RefreshCw,
-  Zap,
-  ShieldCheck,
-  RotateCcw,
   Brain,
-  Check,
   X,
-  Settings,
 } from 'lucide-react';
 
 export const SettingsTab: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>({
-    backendUrl: 'http://localhost:3001',
+    backendUrl: BACKEND_SERVER_URL,
     floatingBadgeEnabled: true,
     preferredLanguage: 'ko',
     deepThinkingEnabled: false,
     allowedSites: DEFAULT_ALLOWED_SITES,
-    isDockerProduction: false,
+    isDockerProduction: true,
   });
 
-  const [isTesting, setIsTesting] = useState(false);
-  const [testResult, setTestResult] = useState<BackendTestResult | null>(null);
-  const [saveStatus, setSaveStatus] = useState<string | null>(null);
-
-  // Detect Docker production environment dynamically from backend health or build-time env
-  const isDockerProd = Boolean(
-    settings.isDockerProduction ||
-    testResult?.isProduction ||
-    testResult?.isDocker ||
-    testResult?.environment === 'production' ||
-    (typeof process !== 'undefined' && (process.env?.DOCKER_ENV === 'production' || process.env?.NODE_ENV === 'production')) ||
-    (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_DOCKER_PROD === 'true' || import.meta.env?.VITE_IS_PRODUCTION === 'true'))
-  );
+  const [_saveStatus, setSaveStatus] = useState<string | null>(null);
 
   useEffect(() => {
     getSettings().then((s) => {
       setSettings(s);
-      // Auto ping test on mount to detect server environment and health
-      testBackendConnection(s.backendUrl).then((res) => {
-        setTestResult(res);
-        const isServerProd = Boolean(res.isProduction || res.isDocker || res.environment === 'production');
-        if (isServerProd !== Boolean(s.isDockerProduction)) {
-          handleChange('isDockerProduction', isServerProd);
-        }
-      });
     });
   }, []);
 
@@ -77,160 +45,8 @@ export const SettingsTab: React.FC = () => {
     setTimeout(() => setSaveStatus(null), 1500);
   };
 
-  const handleTestConnection = async () => {
-    setIsTesting(true);
-    setTestResult(null);
-
-    const res = await testBackendConnection(settings.backendUrl);
-    setTestResult(res);
-    setIsTesting(false);
-  };
-
-  const handleResetDefaultUrl = () => {
-    handleChange('backendUrl', 'http://localhost:3001');
-  };
-
   return (
     <div className="space-y-4">
-      {/* Backend Connection Settings - Hidden in Docker Production */}
-      {!isDockerProd && (
-        <>
-          {/* Header Info */}
-          <div className="space-y-1">
-            <h3 className="text-xs font-semibold flex items-center gap-1.5">
-              <Server className="w-3.5 h-3.5" />
-              AI 백엔드 서버 연동
-            </h3>
-            <p className="text-[11px] text-muted-foreground">
-              별도의 API 키 없이 운영자가 호스팅하는 AI 백엔드를 통해 실시간 분석 및 교정을 제공합니다.
-            </p>
-          </div>
-
-          <Separator />
-
-          {/* Security & Keyless Notice */}
-          <div className="p-3 rounded-lg border bg-muted/30 flex items-start gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-foreground shrink-0 mt-0.5" />
-            <div className="space-y-0.5 text-xs">
-              <p className="font-medium text-[11px]">사용자 API 키 설정 불필요 (Keyless)</p>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">
-                모든 AI 모델 추론 및 프롬프트 분석은 백엔드 서버에서 안전하게 처리됩니다. 익스텐션에서 API 키를 입력하거나 노출할 필요가 없습니다.
-              </p>
-            </div>
-          </div>
-
-          {/* Settings Form */}
-          <div className="space-y-3.5">
-            {/* Backend URL */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="backend-url" className="text-xs flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-                  백엔드 서버 URL
-                </Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleResetDefaultUrl}
-                  className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-foreground gap-1"
-                >
-                  <RotateCcw className="w-2.5 h-2.5" />
-                  로컬 기본값
-                </Button>
-              </div>
-
-              <Input
-                id="backend-url"
-                type="text"
-                placeholder="http://localhost:3001"
-                value={settings.backendUrl}
-                onChange={(e) => handleChange('backendUrl', e.target.value)}
-                className="font-mono text-xs h-8"
-              />
-              <p className="text-[10px] text-muted-foreground">
-                * 배포된 백엔드 서버 URL(예: https://api.betterprompt.dev)로 변경할 수 있습니다.
-              </p>
-            </div>
-
-            {/* Connection Test & Health Status */}
-            <div className="space-y-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={isTesting}
-                onClick={handleTestConnection}
-                className="w-full text-xs h-8"
-              >
-                {isTesting ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                    서버 핑 확인 중...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-3.5 h-3.5 mr-1.5" />
-                    백엔드 서버 연결 상태 테스트
-                  </>
-                )}
-              </Button>
-
-              {testResult && (
-                <div
-                  className={`p-2.5 rounded-lg border text-xs flex items-start gap-2 ${testResult.success
-                    ? 'bg-muted/40 border-border text-foreground'
-                    : 'border-destructive/60 bg-destructive/10 text-destructive'
-                    }`}
-                >
-                  {testResult.success ? (
-                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-foreground" />
-                  ) : (
-                    <XCircle className="w-4 h-4 shrink-0 mt-0.5 text-destructive" />
-                  )}
-                  <div className="space-y-0.5 flex-1">
-                    <div className="font-semibold flex items-center justify-between">
-                      <span>{testResult.success ? '백엔드 정상 작동' : '연결 실패'}</span>
-                      {testResult.success && (
-                        <span className="text-[11px] font-mono text-muted-foreground">
-                          {testResult.latencyMs}ms
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] opacity-90 leading-tight">
-                      {testResult.message}
-                    </p>
-                    {testResult.model && (
-                      <p className="text-[10px] text-muted-foreground pt-0.5">
-                        연결 모델: <span className="font-mono font-medium">{testResult.model}</span>
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <Separator />
-          </div>
-        </>
-      )}
-
-      {/* General Settings Header when in Production */}
-      {isDockerProd && (
-        <>
-          <div className="space-y-1">
-            <h3 className="text-xs font-semibold flex items-center gap-1.5">
-              <Settings className="w-3.5 h-3.5" />
-              일반 환경설정
-            </h3>
-            <p className="text-[11px] text-muted-foreground">
-              BetterPrompt의 동작 방식과 프롬프트 최적화 옵션을 설정합니다.
-            </p>
-          </div>
-          <Separator />
-        </>
-      )}
-
       <div className="space-y-3.5">
         {/* Floating Badge Toggle */}
         <div className="flex items-center justify-between">

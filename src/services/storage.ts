@@ -6,13 +6,15 @@ export const DEFAULT_ALLOWED_SITES = [
   'gemini.google.com',
 ];
 
+export const BACKEND_SERVER_URL = 'https://prompt.devleo.us';
+
 const DEFAULT_SETTINGS: AppSettings = {
-  backendUrl: 'http://localhost:3001',
+  backendUrl: BACKEND_SERVER_URL,
   floatingBadgeEnabled: true,
   preferredLanguage: 'ko',
   deepThinkingEnabled: false,
   allowedSites: DEFAULT_ALLOWED_SITES,
-  isDockerProduction: false,
+  isDockerProduction: true,
 };
 
 const SETTINGS_KEY = 'better_prompt_settings';
