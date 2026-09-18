@@ -1,0 +1,59 @@
+name: Release Extension
+
+on:
+  release:
+    types: [published, created]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release Tag Name (e.g. v1.0.0)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-upload:
+    name: Build and Attach Extension
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Chrome Extension
+        run: npm run build:extension
+
+      - name: Package Extension ZIP
+        run: |
+          # Package dist directory contents directly to root of zip
+          cd dist
+          zip -r ../better-prompt-extension.zip .
+          cd ..
+
+          # If release tag is present, create a versioned copy as well
+          TAG_NAME="${{ github.event.release.tag_name || inputs.tag_name || github.ref_name }}"
+          if [ -n "$TAG_NAME" ] && [ "$TAG_NAME" != "main" ] && [ "$TAG_NAME" != "extension" ]; then
+            cp better-prompt-extension.zip "better-prompt-${TAG_NAME}.zip"
+          fi
+
+          echo "Generated extension archives:"
+          ls -lh better-prompt*.zip
+
+      - name: Upload Extension to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name || inputs.tag_name }}
+          files: better-prompt*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
