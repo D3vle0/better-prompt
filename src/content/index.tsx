@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { FloatingWidget } from './FloatingWidget';
 import cssContent from '../index.css?inline';
+import { getSettings, isSiteAllowed } from '@/services/storage';
 
 let hostElement: HTMLElement | null = null;
 let shadowRoot: ShadowRoot | null = null;
@@ -9,6 +10,45 @@ let reactRoot: ReactDOM.Root | null = null;
 
 let activeTarget: HTMLElement | null = null;
 let currentRect: DOMRect | null = null;
+let isCurrentSiteEnabled = false;
+
+// Check if current site is allowed (chatgpt.com, gemini.google.com, or user-approved site)
+async function checkSitePermission() {
+  try {
+    const settings = await getSettings();
+    const host = window.location.hostname;
+    isCurrentSiteEnabled = isSiteAllowed(host, settings.allowedSites);
+  } catch (e) {
+    console.warn('Failed to check site permission', e);
+  }
+}
+checkSitePermission();
+
+// Real-time synchronization when allowed sites are updated in Popup or Settings
+if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && changes.better_prompt_settings) {
+      const newSettings = changes.better_prompt_settings.newValue;
+      if (newSettings) {
+        const wasEnabled = isCurrentSiteEnabled;
+        isCurrentSiteEnabled = isSiteAllowed(window.location.hostname, newSettings.allowedSites);
+        if (!isCurrentSiteEnabled && wasEnabled) {
+          activeTarget = null;
+          if (reactRoot) reactRoot.render(null);
+        }
+      }
+    }
+  });
+}
+
+if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type === 'BETTER_PROMPT_SITE_ALLOWED') {
+      isCurrentSiteEnabled = true;
+      sendResponse({ ok: true });
+    }
+  });
+}
 
 function initShadowContainer() {
   if (hostElement) return;
@@ -166,6 +206,7 @@ function renderWidget() {
 }
 
 function handleInteraction(e: Event) {
+  if (!isCurrentSiteEnabled) return;
   const matched = isPromptInputElement(e.target);
   if (matched) {
     activeTarget = matched;
@@ -192,6 +233,7 @@ window.addEventListener('resize', handleScrollOrResize);
 
 // Periodic check for active element in single-page apps (ChatGPT / Gemini)
 setInterval(() => {
+  if (!isCurrentSiteEnabled) return;
   if (document.activeElement && document.activeElement !== activeTarget) {
     const matched = isPromptInputElement(document.activeElement);
     if (matched) {

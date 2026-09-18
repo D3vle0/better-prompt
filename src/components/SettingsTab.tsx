@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { AppSettings } from '@/types';
-import { getSettings, saveSettings } from '@/services/storage';
+import { getSettings, saveSettings, removeAllowedSite, DEFAULT_ALLOWED_SITES } from '@/services/storage';
 import { testBackendConnection } from '@/services/aiService';
 import {
   Server,
@@ -25,6 +25,7 @@ import {
   RotateCcw,
   Brain,
   Check,
+  X,
 } from 'lucide-react';
 
 export const SettingsTab: React.FC = () => {
@@ -32,8 +33,8 @@ export const SettingsTab: React.FC = () => {
     backendUrl: 'http://localhost:3001',
     floatingBadgeEnabled: true,
     preferredLanguage: 'ko',
-    defaultImageEngine: 'midjourney',
     deepThinkingEnabled: false,
+    allowedSites: DEFAULT_ALLOWED_SITES,
   });
 
   const [isTesting, setIsTesting] = useState(false);
@@ -265,6 +266,57 @@ export const SettingsTab: React.FC = () => {
                 <SelectItem value="auto">자동 감지</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Allowed Sites Management */}
+        <div className="space-y-2.5">
+          <div className="space-y-0.5">
+            <Label className="text-xs font-semibold flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5 text-foreground" />
+              활성화된 사이트 관리
+            </Label>
+            <p className="text-[11px] text-muted-foreground">
+              BetterPrompt 연동을 허용하고 브라우저가 기억하고 있는 사이트 목록
+            </p>
+          </div>
+
+          <div className="p-2.5 rounded-lg border border-border/40 bg-muted/20 space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              {(settings.allowedSites || DEFAULT_ALLOWED_SITES).map((site) => {
+                const isDefault = ['chatgpt.com', 'chat.openai.com', 'gemini.google.com'].includes(site);
+                return (
+                  <div
+                    key={site}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted text-xs font-mono border border-border/50 text-foreground"
+                  >
+                    <span>{site}</span>
+                    {isDefault ? (
+                      <span className="text-[9px] bg-primary/20 text-foreground font-sans px-1 rounded font-medium">
+                        기본
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const updated = await removeAllowedSite(site);
+                          setSettings((prev) => ({ ...prev, allowedSites: updated }));
+                        }}
+                        className="text-muted-foreground hover:text-destructive transition-colors ml-0.5"
+                        title="허용 해제"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-muted-foreground pt-0.5">
+              * 새로운 사이트는 해당 사이트에서 익스텐션 아이콘을 클릭하여 원클릭으로 활성화할 수 있습니다.
+            </p>
           </div>
         </div>
       </div>

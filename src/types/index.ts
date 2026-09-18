@@ -36,8 +36,9 @@ export interface AppSettings {
   backendUrl: string;
   floatingBadgeEnabled: boolean;
   preferredLanguage: 'ko' | 'en' | 'auto';
-  defaultImageEngine: 'midjourney' | 'flux' | 'dalle' | 'sdxl';
+  defaultImageEngine?: 'midjourney' | 'flux' | 'dalle' | 'sdxl';
   deepThinkingEnabled: boolean;
+  allowedSites: string[];
 }
 
 export interface HistoryItem {

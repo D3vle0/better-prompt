@@ -1,11 +1,17 @@
 import { AppSettings, HistoryItem } from '@/types';
 
+export const DEFAULT_ALLOWED_SITES = [
+  'chatgpt.com',
+  'chat.openai.com',
+  'gemini.google.com',
+];
+
 const DEFAULT_SETTINGS: AppSettings = {
   backendUrl: 'http://localhost:3001',
   floatingBadgeEnabled: true,
   preferredLanguage: 'ko',
-  defaultImageEngine: 'midjourney',
   deepThinkingEnabled: false,
+  allowedSites: DEFAULT_ALLOWED_SITES,
 };
 
 const SETTINGS_KEY = 'better_prompt_settings';
@@ -27,7 +33,12 @@ function getLocalSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (raw) {
-      return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+      const parsed = JSON.parse(raw);
+      return {
+        ...DEFAULT_SETTINGS,
+        ...parsed,
+        allowedSites: parsed.allowedSites || DEFAULT_ALLOWED_SITES,
+      };
     }
   } catch (e) {
     console.warn('Failed to read from localStorage', e);
@@ -46,7 +57,11 @@ export async function getSettings(): Promise<AppSettings> {
               return;
             }
             const saved = result ? result[SETTINGS_KEY] : null;
-            resolve({ ...DEFAULT_SETTINGS, ...(saved || {}) });
+            resolve({
+              ...DEFAULT_SETTINGS,
+              ...(saved || {}),
+              allowedSites: (saved && saved.allowedSites) || DEFAULT_ALLOWED_SITES,
+            });
           });
         } catch {
           resolve(getLocalSettings());
@@ -58,6 +73,45 @@ export async function getSettings(): Promise<AppSettings> {
   }
 
   return getLocalSettings();
+}
+
+/**
+ * Checks if the given hostname/domain is allowed.
+ * Normalizes 'www.', lowercases, and checks exact match or subdomain match.
+ */
+export function isSiteAllowed(hostname: string, allowedSites: string[] = DEFAULT_ALLOWED_SITES): boolean {
+  if (!hostname) return false;
+  const cleanHost = hostname.toLowerCase().replace(/^www\./, '');
+
+  const allSites = Array.from(new Set([...DEFAULT_ALLOWED_SITES, ...(allowedSites || [])]));
+
+  return allSites.some((site) => {
+    const cleanSite = site.toLowerCase().replace(/^www\./, '');
+    return cleanHost === cleanSite || cleanHost.endsWith('.' + cleanSite);
+  });
+}
+
+export async function addAllowedSite(domain: string): Promise<string[]> {
+  if (!domain) return DEFAULT_ALLOWED_SITES;
+  const clean = domain.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0].split(':')[0];
+  const settings = await getSettings();
+  const current = settings.allowedSites || DEFAULT_ALLOWED_SITES;
+  if (!current.includes(clean)) {
+    const updated = [...current, clean];
+    await saveSettings({ allowedSites: updated });
+    return updated;
+  }
+  return current;
+}
+
+export async function removeAllowedSite(domain: string): Promise<string[]> {
+  if (!domain) return DEFAULT_ALLOWED_SITES;
+  const clean = domain.toLowerCase().replace(/^www\./, '');
+  const settings = await getSettings();
+  const current = settings.allowedSites || DEFAULT_ALLOWED_SITES;
+  const updated = current.filter((s) => s.toLowerCase().replace(/^www\./, '') !== clean);
+  await saveSettings({ allowedSites: updated });
+  return updated;
 }
 
 export async function saveSettings(settings: Partial<AppSettings>): Promise<AppSettings> {
